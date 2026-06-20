@@ -28,7 +28,7 @@ export default function AvailableTripsPage() {
     setSubmitError(null);
     const companyId = getCurrentCompanyId() ?? 1;
     try {
-      await tripListings.create({
+      const created = await tripListings.create({
         company_id: companyId,
         vehicle_id: trip.vehicle_id ?? undefined,
         origin_region: trip.origin_region,
@@ -44,12 +44,30 @@ export default function AvailableTripsPage() {
         available_weight_kg: trip.available_weight_kg,
         available_volume_m3: trip.available_volume_m3,
       });
-      // Own trips are hidden from this list, so nothing is added here.
+      const item = toTripListingItem(created, undefined, undefined);
+      setTrips((prev) => [item, ...prev]);
+      setMyIds((prev) => new Set(prev).add(created.id));
       setShowCreate(false);
     } catch (err) {
       setSubmitError(
         err instanceof Error ? err.message : "Failed to save the trip."
       );
+    }
+  }
+
+  // Remove one of the current company's own trip listings.
+  async function handleCancel(id: number) {
+    const prevTrips = trips;
+    setTrips((prev) => prev.filter((t) => t.id !== id));
+    setMyIds((prev) => {
+      const next = new Set(prev);
+      next.delete(id);
+      return next;
+    });
+    try {
+      await tripListings.remove(id);
+    } catch {
+      setTrips(prevTrips);
     }
   }
 
@@ -102,17 +120,24 @@ export default function AvailableTripsPage() {
         const companyMap = new Map(comps.map((c) => [c.id, c]));
         const vehicleMap = new Map(vehs.map((v) => [v.id, v]));
         const companyId = getCurrentCompanyId();
-        // Hide the company's own trips so it can't request a pool to itself.
+        // Mark the company's own trips so they can be styled and cancelled.
+        if (companyId != null) {
+          setMyIds((prev) => {
+            const next = new Set(prev);
+            listings.forEach((tl) => {
+              if (tl.company_id === companyId) next.add(tl.id);
+            });
+            return next;
+          });
+        }
         setTrips(
-          listings
-            .filter((tl) => companyId == null || tl.company_id !== companyId)
-            .map((tl) =>
-              toTripListingItem(
-                tl,
-                companyMap.get(tl.company_id),
-                tl.vehicle_id != null ? vehicleMap.get(tl.vehicle_id) : undefined
-              )
+          listings.map((tl) =>
+            toTripListingItem(
+              tl,
+              companyMap.get(tl.company_id),
+              tl.vehicle_id != null ? vehicleMap.get(tl.vehicle_id) : undefined
             )
+          )
         );
 
         // Restore any pool requests this company already sent (for its cargo)
@@ -236,6 +261,9 @@ export default function AvailableTripsPage() {
                 key={trip.id}
                 trip={trip}
                 onSelect={setSelected}
+                isOwn={myIds.has(trip.id)}
+                requested={requestedMatches.has(trip.id)}
+                onCancel={myIds.has(trip.id) ? handleCancel : undefined}
               />
             ))}
           </div>

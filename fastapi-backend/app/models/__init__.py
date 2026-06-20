@@ -5,6 +5,8 @@ from .trip_listing import TripListing
 from .cargo_match import CargoMatch
 from .cost_split import CostSplit
 from .carbon_log import CarbonLog
+from .device import Device
+from .tracking_records import TrackingRecord
 
 __all__ = [
     "Company",
@@ -14,4 +16,6 @@ __all__ = [
     "CargoMatch",
     "CostSplit",
     "CarbonLog",
+    "Device",
+    "TrackingRecord",
 ]

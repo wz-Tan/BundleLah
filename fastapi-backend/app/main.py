@@ -10,17 +10,15 @@ from app.routers import (
     cost_splits,
     trip_listings,
     vehicles,
+    device,
+    tracking_records,
 )
 
-# Allow your Next.js development server URL
-origins = [
-    "http://localhost:3000",
-]
 
 app = FastAPI(title="BundleLah API")
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=origins,
+    allow_origins=['*'],
     allow_credentials=True,
     allow_methods=["*"],  # This enables OPTIONS, POST, GET, etc.
     allow_headers=["*"],
@@ -33,6 +31,8 @@ app.include_router(trip_listings.router)
 app.include_router(cargo_matches.router)
 app.include_router(cost_splits.router)
 app.include_router(carbon_logs.router)
+app.include_router(device.router)
+app.include_router(tracking_records.router)
 
 
 @app.get("/health")

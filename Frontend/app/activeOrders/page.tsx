@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-
+import RequestBreakdown from "./RequestBreakdown";
 import {
   cargoRequests,
   tripListings,
@@ -12,11 +12,8 @@ import {
 } from "@/lib/api";
 import { getCurrentCompanyId } from "@/lib/session";
 import {
-  ActiveOrdersTabs,
-  RequestCard,
-  TripListingCard,
-  PoolingModal,
   formatDateTime,
+  RequestCard,
   type ActiveOrdersTab,
   type OrderRequest,
   type TripListingDisplay,
@@ -161,6 +158,7 @@ export default function ActiveOrdersPage() {
                 : estimateBudgetRm(cr?.weight_kg);
             return {
               id: `MATCH-${m.id}`,
+              matchId: m.id,
               offeredBy,
               pickup: cr?.pickup_address ?? "Unknown pickup",
               destination: cr?.dropoff_address ?? "Unknown destination",
@@ -210,25 +208,26 @@ export default function ActiveOrdersPage() {
     setSelectedPoolRequest(req);
   };
 
-  const handleDeleteRequest = async (id: string) => {
-    // Card ids look like "CR-123"; the backend wants the raw numeric id.
-    const numericId = Number(id.replace(/^CR-/, ""));
-    if (Number.isNaN(numericId)) return;
-
-    const prev = requests;
-    setRequests((current) => current.filter((r) => r.id !== id));
-    try {
-      await cargoRequests.remove(numericId);
-    } catch {
-      // Restore the list if the backend rejected the deletion.
-      setRequests(prev);
-    }
-  };
-
   const handleCloseModal = () => {
     setSelectedTrip(null);
     setSelectedPoolRequest(null);
   };
+
+  // Accept an offer to carry my cargo: marks the match accepted.
+  async function handleAcceptOffer(matchId: number) {
+    await cargoMatches.update(matchId, { status: "accepted" });
+    setRequests((prev) =>
+      prev.map((r) =>
+        r.matchId === matchId ? { ...r, status: "accepted" } : r
+      )
+    );
+  }
+
+  // Reject an offer: marks the match rejected and drops it from the list.
+  async function handleRejectOffer(matchId: number) {
+    await cargoMatches.update(matchId, { status: "rejected" });
+    setRequests((prev) => prev.filter((r) => r.matchId !== matchId));
+  }
 
   console.log(requests, trips)
   return (
@@ -246,66 +245,148 @@ export default function ActiveOrdersPage() {
           </div>
         </div>
 
-        <ActiveOrdersTabs
-          activeTab={activeTab}
-          onChange={setActiveTab}
-          requestCount={requests.length}
-          tripCount={trips.length}
-        />
+        {/* Error Display */}
+        {error && (
+          <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg">
+            <p className="text-sm">{error}</p>
+            <button
+              onClick={() => window.location.reload()}
+              className="text-xs underline mt-1 hover:text-red-800"
+            >
+              Retry
+            </button>
+          </div>
+        )}
 
-        {/* Loading / error states */}
+        {/* Loading State */}
         {loading && (
-          <div className="py-16 text-center text-sm text-gray-400">
-            Loading your orders…
+          <div className="flex justify-center items-center py-12">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-orange-500"></div>
+            <span className="ml-3 text-gray-600">Loading...</span>
           </div>
         )}
 
-        {!loading && error && (
-          <div className="bg-red-50 border border-red-200 text-red-700 rounded-xl p-4 text-sm">
-            {error}
-          </div>
-        )}
+        {/* Content - only show when not loading */}
+        {!loading && (
+          <>
+            {/* Custom Tab Switcher */}
+            <div className="flex border-b border-gray-200 gap-6">
+              <button
+                onClick={() => setActiveTab("requests")}
+                className={`pb-3 text-sm font-medium transition-colors cursor-pointer ${activeTab === "requests"
+                  ? "border-b-2 border-orange-500 text-orange-500"
+                  : "text-gray-400 hover:text-gray-600"
+                  }`}
+              >
+                Requests ({requests.length})
+              </button>
+              <button
+                onClick={() => setActiveTab("trips")}
+                className={`pb-3 text-sm font-medium transition-colors cursor-pointer ${activeTab === "trips"
+                  ? "border-b-2 border-orange-500 text-orange-500"
+                  : "text-gray-400 hover:text-gray-600"
+                  }`}
+              >
+                Trip Listings ({trips.length})
+              </button>
+            </div>
 
-        {/* Requests Content */}
-        {!loading && !error && activeTab === "requests" && (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {requests.length === 0 && (
-              <p className="text-sm text-gray-400 col-span-full">
-                No cargo requests yet.
-              </p>
+            {/* Requests Content */}
+            {activeTab === "requests" && (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {requests.map((req) => (
+                  <RequestCard
+                    key={req.id}
+                    request={req}
+                    onAccept={handleAcceptOffer}
+                    onReject={handleRejectOffer}
+                  />
+                ))}
+              </div>
             )}
-            {requests.map((req) => (
-              <RequestCard
-                key={req.id}
-                request={req}
-                onDelete={handleDeleteRequest}
-              />
-            ))}
-          </div>
-        )}
 
-        {/* Trip Listings Content */}
-        {!loading && !error && activeTab === "trips" && (
-          <div className="flex flex-col gap-6">
-            {trips.length === 0 && (
-              <p className="text-sm text-gray-400">No trip listings yet.</p>
+            {/* Trip Listings Content */}
+            {activeTab === "trips" && (
+              <div className="flex flex-col gap-6">
+                {trips.map((trip) => (
+                  <div
+                    key={trip.id}
+                    className="bg-white border border-gray-200 rounded-xl p-6 shadow-sm grid grid-cols-1 lg:grid-cols-3 gap-6"
+                  >
+                    {/* Left Side: Trip Details */}
+                    <div className="flex flex-col justify-between lg:border-r lg:border-gray-100 lg:pr-6">
+                      <div>
+                        <div className="flex justify-between items-start mb-2">
+                          <div>
+                            <span className="text-xs font-semibold text-gray-400 uppercase tracking-wider">
+                              Listing ID
+                            </span>
+                            <h3 className="text-sm font-bold text-gray-900">
+                              {trip.id}
+                            </h3>
+                          </div>
+                        </div>
+                        <p className="text-xs text-gray-400 mb-4">
+                          {trip.dateTime}
+                        </p>
+
+                        <div className="space-y-2 text-sm text-gray-600">
+                          <div>
+                            <strong className="text-gray-900">Pick Up:</strong>{" "}
+                            {trip.pickup}
+                          </div>
+                          <div>
+                            <strong className="text-gray-900">Destination:</strong>{" "}
+                            {trip.destination}
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="mt-6">
+                        <span className="text-xs font-semibold text-gray-400 uppercase tracking-wide block mb-2">
+                          Pooling Requests ({trip.poolingRequests.length})
+                        </span>
+                        <div className="flex flex-col gap-2">
+                          {trip.poolingRequests.map((req) => (
+                            <button
+                              key={req.id}
+                              onClick={() => handleOpenPoolModal(trip, req)}
+                              className="w-full text-left text-xs bg-orange-50 hover:bg-orange-100 text-orange-700 p-2.5 rounded-xl border border-orange-200/50 transition-colors flex justify-between items-center font-medium cursor-pointer"
+                            >
+                              <span>
+                                {req.id} ({req.pickup.split(",")[0]} &rarr;{" "}
+                                {req.destination.split(",")[0]})
+                              </span>
+                              <span className="font-bold">+RM {req.price}</span>
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Right Side: Map Canvas Area */}
+                    <div className="lg:col-span-2 bg-orange-50/50 border border-orange-100 rounded-xl min-h-[220px] flex flex-col items-center justify-center relative overflow-hidden">
+                      <div className="absolute inset-0 opacity-10 bg-[radial-gradient(#f97316_1px,transparent_1px)] [background-size:16px_16px]"></div>
+                      <span className="text-xs font-medium text-orange-400 uppercase tracking-wider z-10">
+                        Route Map Visualizer
+                      </span>
+                      <p className="text-xs text-gray-400 mt-1 z-10">
+                        {trip.pickup} &rarr; {trip.destination}
+                      </p>
+                    </div>
+                  </div>
+                ))}
+              </div>
             )}
-            {trips.map((trip) => (
-              <TripListingCard
-                key={trip.id}
-                trip={trip}
-                onOpenPool={handleOpenPoolModal}
-              />
-            ))}
-          </div>
+          </>
         )}
       </div>
 
-      {/* Pooling detail modal */}
+      {/* Pooling Request Modal */}
       {selectedTrip && selectedPoolRequest && (
-        <PoolingModal
-          trip={selectedTrip}
-          request={selectedPoolRequest}
+        <RequestBreakdown
+          selectedTrip={selectedTrip}
+          selectedPoolRequest={selectedPoolRequest}
           onClose={handleCloseModal}
         />
       )}

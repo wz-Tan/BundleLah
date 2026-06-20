@@ -7,6 +7,8 @@ from . import (
     cargo_matches,
     cost_splits,
     carbon_logs,
+    device,
+    tracking_records,
 )
 
 __all__ = [
@@ -18,4 +20,6 @@ __all__ = [
     "cargo_matches",
     "cost_splits",
     "carbon_logs",
+    "device",
+    "tracking_records",
 ]
