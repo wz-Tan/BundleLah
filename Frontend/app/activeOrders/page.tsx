@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 import {
   cargoRequests,
   tripListings,
+  cargoMatches,
   estimateBudgetRm,
   ApiError,
 } from "@/lib/api";
@@ -56,16 +57,65 @@ export default function ActiveOrdersPage() {
         ]);
         if (cancelled) return;
 
-        setRequests(
-          cargo.map((cr) => ({
-            id: `CR-${cr.id}`,
-            pickup: cr.pickup_address,
-            destination: cr.dropoff_address,
-            price: estimateBudgetRm(cr.weight_kg),
-            status: cr.status,
-          }))
-        );
+        // Pull pooling requests/offers (cargo_matches) tied to this company,
+        // both as the trip owner and as the cargo owner.
+        const matchLists = await Promise.all([
+          ...listings.map((tl) =>
+            cargoMatches.list({ trip_listing_id: tl.id })
+          ),
+          ...cargo.map((cr) => cargoMatches.list({ cargo_request_id: cr.id })),
+        ]);
+        if (cancelled) return;
 
+        // Dedupe matches by id.
+        const matchById = new Map<number, (typeof matchLists)[number][number]>();
+        for (const list of matchLists) {
+          for (const m of list) matchById.set(m.id, m);
+        }
+        const matches = [...matchById.values()];
+
+        // Resolve cargo request details for every match (fetch any we don't
+        // already have from this company's own requests).
+        const cargoById = new Map(cargo.map((cr) => [cr.id, cr]));
+        const missingIds = [
+          ...new Set(
+            matches
+              .map((m) => m.cargo_request_id)
+              .filter(
+                (cid): cid is number => cid != null && !cargoById.has(cid)
+              )
+          ),
+        ];
+        const fetched = await Promise.all(
+          missingIds.map((cid) => cargoRequests.get(cid))
+        );
+        if (cancelled) return;
+        for (const cr of fetched) cargoById.set(cr.id, cr);
+
+        const toOrderRequest = (
+          match: (typeof matches)[number]
+        ): OrderRequest => {
+          const cr =
+            match.cargo_request_id != null
+              ? cargoById.get(match.cargo_request_id)
+              : undefined;
+          const price =
+            match.agreed_price_rm != null
+              ? Number(match.agreed_price_rm)
+              : estimateBudgetRm(cr?.weight_kg);
+          return {
+            id: `MATCH-${match.id}`,
+            pickup: cr?.pickup_address ?? "Unknown pickup",
+            destination: cr?.dropoff_address ?? "Unknown destination",
+            price,
+            status: match.status ?? "pending",
+          };
+        };
+
+        // Requests tab: every pooling request/offer involving this company.
+        setRequests(matches.map(toOrderRequest));
+
+        // Trip Listings tab: each trip with the pooling requests made on it.
         setTrips(
           listings.map((tl) => ({
             id: `TRIP-${tl.id}`,
@@ -73,7 +123,9 @@ export default function ActiveOrdersPage() {
             destination: tl.destination_region,
             dateTime: formatDateTime(tl.departure_window_start),
             status: tl.status,
-            poolingRequests: [],
+            poolingRequests: matches
+              .filter((m) => m.trip_listing_id === tl.id)
+              .map(toOrderRequest),
           }))
         );
       } catch (err) {
@@ -108,6 +160,7 @@ export default function ActiveOrdersPage() {
     setSelectedPoolRequest(null);
   };
 
+  console.log(requests, trips)
   return (
     <main className="min-h-screen bg-gray-50 p-8 flex flex-col items-center">
       <div className="w-full max-w-5xl flex flex-col gap-6">
