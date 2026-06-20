@@ -1,6 +1,6 @@
 "use client";
 
-import { tripListings, companies, vehicles, toTripListingItem } from "@/lib/api";
+import { tripListings, companies, vehicles, cargoRequests, cargoMatches, toTripListingItem } from "@/lib/api";
 import { getCurrentCompanyId } from "@/lib/session";
 import { useEffect, useState } from "react";
 import type { GetTripListingItem, TripListing } from "@/type";
@@ -64,6 +64,31 @@ export default function AvailableTripsPage() {
     } catch {
       setTrips(prevTrips);
     }
+  }
+
+  // Request to put one of the current company's open cargo requests on this trip.
+  async function handleRequestPool(trip: GetTripListingItem) {
+    const companyId = getCurrentCompanyId() ?? 1;
+    const myCargo = await cargoRequests.list({
+      company_id: companyId,
+      status_filter: "open",
+    });
+    if (myCargo.length === 0) {
+      throw new Error(
+        "Create a cargo request first before requesting to pool on a trip."
+      );
+    }
+    const cargo = myCargo[0];
+    const pricePerKg = trip.estimated_price_per_kg_rm;
+    await cargoMatches.create({
+      trip_listing_id: trip.id,
+      cargo_request_id: cargo.id,
+      initiated_by: "shipper",
+      agreed_price_rm:
+        pricePerKg != null && cargo.weight_kg != null
+          ? Math.round(pricePerKg * cargo.weight_kg * 100) / 100
+          : undefined,
+    });
   }
 
   const [loading, setLoading] = useState(true);
@@ -226,7 +251,11 @@ export default function AvailableTripsPage() {
       </main>
 
       {selected && (
-        <TripDetail trip={selected} onClose={() => setSelected(null)} />
+        <TripDetail
+          trip={selected}
+          onClose={() => setSelected(null)}
+          onRequestPool={handleRequestPool}
+        />
       )}
 
       {showCreate && (

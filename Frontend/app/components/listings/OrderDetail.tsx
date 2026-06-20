@@ -7,14 +7,16 @@ import { cargoMatches, tripListings, ApiError } from "@/lib/api";
 import { getCurrentCompanyId } from "@/lib/session";
 import { formatTime } from "./listingUtils";
 
+type PoolStatus = "idle" | "loading" | "success" | "error";
+
 export function OrderDetail({
   order,
   onClose,
-  onOffered,
+  onOfferPool,
 }: {
   order: GetCargoRequestItem;
   onClose: () => void;
-  onOffered?: () => void;
+  onOfferPool?: (order: GetCargoRequestItem) => Promise<void>;
 }) {
   const pickupStart = order.pickup.window_start
     ? formatTime(order.pickup.window_start)
@@ -194,6 +196,7 @@ export function OrderDetail({
         </div>
 
         <div className="px-5 py-4 border-t border-black/[.06]">
+<<<<<<< HEAD
           {submitError && (
             <p className="text-xs text-red-600 mb-2">{submitError}</p>
           )}
@@ -210,6 +213,18 @@ export function OrderDetail({
               {submitting ? "Sending offer..." : "Offer To Pool This Cargo"}
             </button>
           )}
+=======
+          {poolError && (
+            <p className="mb-2 text-xs text-red-600">{poolError}</p>
+          )}
+          <button
+            onClick={handleOffer}
+            disabled={poolStatus === "loading" || poolStatus === "success"}
+            className="w-full h-11 rounded-full bg-zinc-900 text-white text-sm font-semibold hover:bg-zinc-700 transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
+          >
+            {offerLabel}
+          </button>
+>>>>>>> aaacaf646fbab8954e6d7fd9c471b9fb9995f02a
         </div>
       </div>
     </div>
