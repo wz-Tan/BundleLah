@@ -2,24 +2,28 @@
 // Shared Enums
 // =========================
 
-export type OrderStatus =
-  | "pending"
-  | "grouped"
-  | "dispatched"
+export type CargoRequestStatus =
+  | "open"
+  | "matched"
+  | "in_transit"
   | "delivered"
   | "cancelled";
 
-export type TripStatus =
-  | "scheduled"
+export type TripListingStatus =
+  | "open"
+  | "locked"
   | "in_progress"
   | "completed"
   | "cancelled";
 
-export type TierBadge =
-  | "bronze"
-  | "silver"
-  | "gold"
-  | "platinum";
+export type MatchStatus = 
+  | "pending" 
+  | "accepted" 
+  | "rejected";
+
+export type InitiatedBy = 
+  | "logistics_provider" 
+  | "cargo_owner";
 
 export type PaymentStatus =
   | "paid"
@@ -29,32 +33,28 @@ export type PaymentStatus =
 // Base Models
 // =========================
 
+export interface VehicleInfo {
+  vehicle_type: string;
+  license_plate: string;
+  max_payload_kg: number;
+}
+
 export interface Company {
   id: number;
   name: string;
-  email: string;
-  password: string;
+  username: string; // Updated from email based on your schema
   ssm_number: string;
   address: string;
   wallet_balance: number;
   created_at: string;
+  vehicle_info?: VehicleInfo | null; // Null if Customer 2 (No logistics)
 }
 
-export interface Driver {
+export interface CargoRequest {
   id: number;
   company_id: number;
-  vehicle_type: string;
-  max_payload_kg: number;
-  license_plate: string;
-  tier_badge: TierBadge;
-  total_earned: number;
-}
 
-export interface Order {
-  id: number;
-  company_id: number;
-  supplier_address: string;
-
+  pickup_address: string;
   pickup_lat: number;
   pickup_lng: number;
 
@@ -68,305 +68,186 @@ export interface Order {
   pickup_window_start: string;
   pickup_window_end: string;
 
-  status: OrderStatus;
+  status: CargoRequestStatus;
   priority_flag: boolean;
-
   created_at: string;
 }
 
-export interface Trip {
+export interface TripListing {
   id: number;
-  driver_id: number;
-  status: TripStatus;
+  company_id: number;
 
-  total_distance_km: number;
-  load_factor_pct: number;
-  route_score: number;
+  origin_region: string;
+  destination_region: string;
+  route_json: unknown; // Ideally typed to a specific RouteData interface if keeping map polyline
 
-  dispatched_at: string;
+  departure_window_start: string;
+
+  available_weight_kg: number;
+  available_volume_m3: number;
+
+  status: TripListingStatus;
+  created_at: string;
 }
 
-// =========================
-// Route
-// =========================
-
-export interface RouteStop {
-  order_id: string;
-  company_name: string;
-
-  address: string;
-
-  lat: number;
-  lng: number;
-
-  sequence: number;
-
-  weight_kg: number;
-
-  arrived_at: string | null;
-}
-
-export interface RouteData {
-  polyline: string;
-  stops: RouteStop[];
-}
-
-// =========================
-// Carbon
-// =========================
-
-export interface CarbonLog {
+export interface CargoMatch {
   id: number;
-  co2_emitted_kg: number;
-  co2_avoided_kg: number;
-  credits_awarded: number;
-  logged_at: string;
-}
-
-export interface CarbonMonthlyBreakdown {
-  month: string;
-  avoided_kg: number;
-  credits: number;
+  trip_listing_id: number;
+  cargo_request_id: number;
+  
+  initiated_by: InitiatedBy;
+  status: MatchStatus;
+  agreed_price_rm: number;
+  
+  matched_at: string;
 }
 
 // =========================
-// Cost Split
+// Auxiliary Models
 // =========================
 
 export interface CostSplit {
   id: number;
-  company_id: number;
-  company_name: string;
+  match_id: number;
+  payer_company_id: number;
+  payee_company_id: number;
 
   amount_rm: number;
-
-  weight_share_pct: number;
-  route_share_pct: number;
+  platform_fee_rm: number;
 
   payment_status: PaymentStatus;
-
   paid_at: string | null;
-
-  trip_id: number;
 }
 
-export interface CostSummary {
-  total_trip_cost_rm: number;
-  platform_fee_rm: number;
-  driver_earnings_rm: number;
-  solo_equivalent_rm: number;
-  savings_rm: number;
-}
-
-// =========================
-// API Responses
-// =========================
-
-export interface CompanyStats {
-  total_orders: number;
-  active_orders: number;
-  total_spent_rm: number;
-  carbon_credits_earned: number;
-  co2_avoided_kg: number;
-}
-
-export interface GetCompanyResponse extends Company {
-  stats: CompanyStats;
-}
-
-// -------------------------
-
-export interface CreateOrderRequest {
-  company_id: number;
-
-  supplier_address: string;
-
-  pickup_lat: number;
-  pickup_lng: number;
-
-  dropoff_address: string;
-  dropoff_lat: number;
-  dropoff_lng: number;
-
-  weight_kg: number;
-  volume_m3: number;
-
-  pickup_window_start: string;
-  pickup_window_end: string;
-
-  priority_flag: boolean;
-}
-
-// -------------------------
-
-export interface OrderTripInfo {
+export interface CarbonLog {
   id: number;
-  status: TripStatus;
-  dispatched_at: string;
-  driver_name: string;
-  vehicle_plate: string;
-}
-
-export interface GetOrderResponse extends Order {
-  trip: OrderTripInfo | null;
-  estimated_cost_rm: number;
-}
-
-// -------------------------
-
-export interface DriverTripStats {
-  total_trips: number;
-  avg_load_factor_pct: number;
-  avg_route_score: number;
-  total_distance_km: number;
-}
-
-export interface ActiveTripSummary {
-  id: number;
-  status: TripStatus;
-  dispatched_at: string;
-  stops: number;
-  estimated_km: number;
-}
-
-export interface GetDriverResponse extends Driver {
-  trip_stats: DriverTripStats;
-  active_trip: ActiveTripSummary | null;
-}
-
-// -------------------------
-
-export interface TripDriverInfo {
-  id: number;
-  name: string;
-  vehicle_type: string;
-  license_plate: string;
-  tier_badge: TierBadge;
-}
-
-export interface GetTripResponse extends Trip {
-  route: RouteData;
-
-  driver: TripDriverInfo;
-
-  cost_splits: CostSplit[];
-
-  cost_summary: CostSummary;
-
-  carbon_log: CarbonLog;
-}
-
-// -------------------------
-
-export interface GetCompanyCarbonResponse {
-  company_id: number;
-
-  period: string;
+  trip_listing_id: number;
+  cargo_request_id?: number; // Nullable if log is for the whole trip rather than specific cargo
 
   co2_emitted_kg: number;
   co2_avoided_kg: number;
-
-  credits_earned: number;
-  credits_balance: number;
-
-  monthly_breakdown: CarbonMonthlyBreakdown[];
+  credits_awarded: number;
+  
+  logged_at: string;
 }
 
-// -------------------------
+// =========================
+// API Responses: Listing Pages
+// =========================
 
-export interface DashboardActiveOrder {
+// Listing Page 2: Used by non-logistics companies looking for a truck
+export interface GetTripListingItem {
   id: number;
-
-  status: OrderStatus;
-
-  weight_kg: number;
-
-  supplier_address: string;
-
-  trip_status: TripStatus;
-
-  driver_name: string;
-
-  estimated_cost_rm: number;
+  logistics_provider: {
+    company_id: number;
+    name: string;
+    license_plate: string;
+    vehicle_type: string;
+  };
+  origin_region: string;
+  destination_region: string;
+  departure_window_start: string;
+  available_capacity: {
+    weight_kg: number;
+    volume_m3: number;
+  };
+  match_status: TripListingStatus;
+  estimated_price_per_kg_rm: number;
 }
 
-export interface DashboardCompany {
+export interface GetTripListingsResponse {
+  results: GetTripListingItem[];
+}
+
+// Listing Page 1: Used by logistics providers looking for extra cargo
+export interface LocationDetails {
+  address: string;
+  lat: number;
+  lng: number;
+  window_start?: string; // Optional for dropoff
+}
+
+export interface GetCargoRequestItem {
+  id: number;
+  sender_company: string;
+  pickup: LocationDetails;
+  dropoff: LocationDetails;
+  cargo_details: {
+    weight_kg: number;
+    volume_m3: number;
+  };
+  priority_flag: boolean;
+  suggested_budget_rm: number;
+}
+
+export interface GetCargoRequestsResponse {
+  results: GetCargoRequestItem[];
+}
+
+// =========================
+// API Responses: Matching
+// =========================
+
+export interface CreateMatchRequest {
+  trip_listing_id: number;
+  cargo_request_id: number;
+  initiated_by: InitiatedBy;
+  proposed_price_rm: number;
+}
+
+export interface MatchActionResponse {
+  match_id: number;
+  status: MatchStatus;
+  message?: string;
+  agreed_price_rm?: number;
+  trip_status_updated?: boolean;
+  cargo_status_updated?: boolean;
+}
+
+// =========================
+// API Responses: Unified Dashboard
+// =========================
+
+export interface DashboardCompanyInfo {
   id: number;
   name: string;
   wallet_balance: number;
 }
 
-export interface DashboardCarbonSummary {
+export interface MyActiveCargo {
+  id: number;
+  status: CargoRequestStatus;
+  matched_trip_id: number | null;
+  logistics_provider: string | null;
+  departure_time: string | null;
+}
+
+export interface MyActiveTrip {
+  id: number;
+  status: TripListingStatus;
+  origin_region: string;
+  destination_region: string;
+  departure_window_start: string;
+  remaining_weight_kg: number;
+}
+
+export interface PendingMatchApproval {
+  match_id: number;
+  type: "incoming_request_for_my_trip" | "incoming_offer_for_my_cargo";
+  from_company: string;
+  cargo_weight_kg?: number;
+  offered_price_rm: number;
+}
+
+export interface CarbonSummary {
   co2_avoided_kg_this_month: number;
   credits_balance: number;
 }
 
-export interface DashboardResponse {
-  company: DashboardCompany;
-
-  active_orders: DashboardActiveOrder[];
-
-  carbon_summary: DashboardCarbonSummary;
-
-  wallet_balance: number;
-}
-
-// -------------------------
-
-export interface DriverDashboardDriver {
-  id: string;
-  name: string;
-  tier_badge: TierBadge;
-  total_earned: number;
-}
-
-export interface UpcomingTrip {
-  id: string;
-  dispatched_at: string;
-  stops: number;
-  estimated_km: number;
-  estimated_earn_rm: number;
-}
-
-export interface WeeklyScheduleItem {
-  date: string;
-  trips: number;
-  earn_rm: number;
-}
-
-export interface DriverDashboardResponse {
-  driver: DriverDashboardDriver;
-
-  active_trip: GetTripResponse | null;
-
-  earnings_this_week: number;
-
-  upcoming_trips: UpcomingTrip[];
-
-  weekly_schedule: WeeklyScheduleItem[];
-}
-
-// -------------------------
-
-export interface AdminAlert {
-  type: string;
-  company: string;
-  amount_rm: number;
-  cost_split_id: string;
-}
-
-export interface AdminOverviewResponse {
-  active_trips: number;
-  pending_orders: number;
-  available_drivers: number;
-
-  revenue_today_rm: number;
-
-  co2_avoided_today_kg: number;
-
-  load_factor_avg_pct: number;
-
-  live_trips: GetTripResponse[];
-
-  alerts: AdminAlert[];
+export interface UnifiedDashboardResponse {
+  company_info: DashboardCompanyInfo;
+  my_active_cargo_requests: MyActiveCargo[];
+  my_active_trip_listings: MyActiveTrip[];
+  pending_match_approvals: PendingMatchApproval[];
+  carbon_summary: CarbonSummary;
 }
