@@ -9,25 +9,10 @@ import {
     fetchTrackingRecords as fetchTrackingRecordsService,
     type TrackingRecord,
 } from "@/app/services/tracking";
-
-interface OrderRequest {
-    id: string;
-    pickup: string;
-    destination: string;
-    price: number;
-    status: "pending" | "accepted";
-}
-
-interface TripListing {
-    id: string;
-    pickup: string;
-    destination: string;
-    dateTime: string;
-    poolingRequests: OrderRequest[];
-}
+import type { OrderRequest, TripListingDisplay } from "@/app/components/activeOrders";
 
 interface RequestBreakdownProps {
-    selectedTrip: TripListing;
+    selectedTrip: TripListingDisplay;
     selectedPoolRequest: OrderRequest;
     onClose: () => void;
 }
