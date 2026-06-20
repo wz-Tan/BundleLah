@@ -20,6 +20,8 @@ export interface TripListingDisplay {
   dateTime: string;
   status: string;
   poolingRequests: OrderRequest[];
+  // For completed trips: the accepted cargo_match id whose IoT device is tracked.
+  trackingMatchId?: number;
 }
 
 export type ActiveOrdersTab = "requests" | "trips";

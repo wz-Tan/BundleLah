@@ -14,6 +14,8 @@ import { getCurrentCompanyId } from "@/lib/session";
 import {
   formatDateTime,
   RequestCard,
+  TripListingCard,
+  TrackingModal,
   type OrderRequest,
   type TripListingDisplay,
 } from "@/app/components/activeOrders";
@@ -30,7 +32,9 @@ export default function ActiveOrdersPage() {
   ); // accepted
   // Trip Listings tab: pooling requests made on my trips.
   const [trips, setTrips] = useState<TripListingDisplay[]>([]); // pending pooling
-  const [tripsCompleted, setTripsCompleted] = useState<OrderRequest[]>([]); // accepted
+  const [tripsCompleted, setTripsCompleted] = useState<TripListingDisplay[]>(
+    []
+  ); // accepted handshakes (one card per accepted match)
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -40,6 +44,10 @@ export default function ActiveOrdersPage() {
   );
   const [selectedPoolRequest, setSelectedPoolRequest] =
     useState<OrderRequest | null>(null);
+  // Trip whose IoT device tracking popup is open.
+  const [trackingTrip, setTrackingTrip] = useState<TripListingDisplay | null>(
+    null
+  );
 
   useEffect(() => {
     const companyId = getCurrentCompanyId();
@@ -202,7 +210,9 @@ export default function ActiveOrdersPage() {
 
         // Trip Listings tab: pooling requests on my trips.
         const myTripIds = new Set(listings.map((tl) => tl.id));
-        // Completed = accepted pooling requests on any of my trips.
+        const tripById = new Map(listings.map((tl) => [tl.id, tl]));
+        // Completed = accepted pooling requests on any of my trips. One card
+        // per accepted match (each carries the match id for IoT tracking).
         setTripsCompleted(
           matches
             .filter(
@@ -211,7 +221,23 @@ export default function ActiveOrdersPage() {
                 m.trip_listing_id != null &&
                 myTripIds.has(m.trip_listing_id)
             )
-            .map(toCardItem)
+            .map((m) => {
+              const tl =
+                m.trip_listing_id != null
+                  ? tripById.get(m.trip_listing_id)
+                  : undefined;
+              return {
+                id: `TRIP-${m.trip_listing_id}`,
+                pickup: tl?.origin_region ?? "Unknown origin",
+                destination: tl?.destination_region ?? "Unknown destination",
+                dateTime: tl
+                  ? formatDateTime(tl.departure_window_start)
+                  : "—",
+                status: tl?.status ?? "locked",
+                poolingRequests: [],
+                trackingMatchId: m.id,
+              };
+            })
         );
 
         // Pending = each trip with its still-pending pooling requests.
@@ -289,11 +315,22 @@ export default function ActiveOrdersPage() {
   async function handleAcceptPool(req: OrderRequest, trip: TripListingDisplay) {
     if (req.matchId == null) return;
     await cargoMatches.update(req.matchId, { status: "accepted" });
-    // Move it into Trip Listings/Completed.
+    // Move it into Trip Listings/Completed as a completed handshake card.
     setTripsCompleted((acc) =>
-      acc.some((a) => a.matchId === req.matchId)
+      acc.some((a) => a.trackingMatchId === req.matchId)
         ? acc
-        : [{ ...req, status: "accepted" }, ...acc]
+        : [
+            {
+              id: trip.id,
+              pickup: trip.pickup,
+              destination: trip.destination,
+              dateTime: trip.dateTime,
+              status: "accepted",
+              poolingRequests: [],
+              trackingMatchId: req.matchId,
+            },
+            ...acc,
+          ]
     );
     // Drop it from the originating trip's pending pooling requests.
     setTrips((prev) =>
@@ -333,6 +370,8 @@ export default function ActiveOrdersPage() {
     handleCloseModal();
   }
 
+
+  console.log(trips, tripsCompleted)
   return (
     <main className="min-h-screen bg-gray-50 p-8 flex flex-col items-center">
       <div className="w-full max-w-5xl flex flex-col gap-6">
@@ -477,72 +516,11 @@ export default function ActiveOrdersPage() {
                   </p>
                 ) : (
                   trips.map((trip) => (
-                    <div
+                    <TripListingCard
                       key={trip.id}
-                      className="bg-white border border-gray-200 rounded-xl p-6 shadow-sm grid grid-cols-1 lg:grid-cols-3 gap-6"
-                    >
-                      {/* Left Side: Trip Details */}
-                      <div className="flex flex-col justify-between lg:border-r lg:border-gray-100 lg:pr-6">
-                        <div>
-                          <div className="flex justify-between items-start mb-2">
-                            <div>
-                              <span className="text-xs font-semibold text-gray-400 uppercase tracking-wider">
-                                Listing ID
-                              </span>
-                              <h3 className="text-sm font-bold text-gray-900">
-                                {trip.id}
-                              </h3>
-                            </div>
-                          </div>
-                          <p className="text-xs text-gray-400 mb-4">
-                            {trip.dateTime}
-                          </p>
-
-                          <div className="space-y-2 text-sm text-gray-600">
-                            <div>
-                              <strong className="text-gray-900">Pick Up:</strong>{" "}
-                              {trip.pickup}
-                            </div>
-                            <div>
-                              <strong className="text-gray-900">Destination:</strong>{" "}
-                              {trip.destination}
-                            </div>
-                          </div>
-                        </div>
-
-                        <div className="mt-6">
-                          <span className="text-xs font-semibold text-gray-400 uppercase tracking-wide block mb-2">
-                            Pooling Requests ({trip.poolingRequests.length})
-                          </span>
-                          <div className="flex flex-col gap-2">
-                            {trip.poolingRequests.map((req) => (
-                              <button
-                                key={req.id}
-                                onClick={() => handleOpenPoolModal(trip, req)}
-                                className="w-full text-left text-xs bg-orange-50 hover:bg-orange-100 text-orange-700 p-2.5 rounded-xl border border-orange-200/50 transition-colors flex justify-between items-center font-medium cursor-pointer"
-                              >
-                                <span>
-                                  {req.id} ({req.pickup.split(",")[0]} &rarr;{" "}
-                                  {req.destination.split(",")[0]})
-                                </span>
-                                <span className="font-bold">+RM {req.price}</span>
-                              </button>
-                            ))}
-                          </div>
-                        </div>
-                      </div>
-
-                      {/* Right Side: Map Canvas Area */}
-                      <div className="lg:col-span-2 bg-orange-50/50 border border-orange-100 rounded-xl min-h-[220px] flex flex-col items-center justify-center relative overflow-hidden">
-                        <div className="absolute inset-0 opacity-10 bg-[radial-gradient(#f97316_1px,transparent_1px)] [background-size:16px_16px]"></div>
-                        <span className="text-xs font-medium text-orange-400 uppercase tracking-wider z-10">
-                          Route Map Visualizer
-                        </span>
-                        <p className="text-xs text-gray-400 mt-1 z-10">
-                          {trip.pickup} &rarr; {trip.destination}
-                        </p>
-                      </div>
-                    </div>
+                      trip={trip}
+                      onOpenPool={handleOpenPoolModal}
+                    />
                   ))
                 )}
               </div>
@@ -550,14 +528,19 @@ export default function ActiveOrdersPage() {
 
             {/* Trip Listings / Completed */}
             {mainTab === "trips" && subTab === "completed" && (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="flex flex-col gap-6">
                 {tripsCompleted.length === 0 ? (
-                  <p className="text-sm text-gray-400 col-span-full py-8 text-center">
+                  <p className="text-sm text-gray-400 py-8 text-center">
                     No accepted pooling requests on your trips yet.
                   </p>
                 ) : (
-                  tripsCompleted.map((item) => (
-                    <RequestCard key={item.id} request={item} />
+                  tripsCompleted.map((trip) => (
+                    <TripListingCard
+                      key={trip.trackingMatchId ?? trip.id}
+                      trip={trip}
+                      showPoolingRequests={false}
+                      onTrack={setTrackingTrip}
+                    />
                   ))
                 )}
               </div>
@@ -578,6 +561,15 @@ export default function ActiveOrdersPage() {
           onDecline={() =>
             handleDeclinePool(selectedPoolRequest, selectedTrip)
           }
+        />
+      )}
+
+      {/* IoT Device Tracking Modal */}
+      {trackingTrip && trackingTrip.trackingMatchId != null && (
+        <TrackingModal
+          cargoMatchId={trackingTrip.trackingMatchId}
+          title={`${trackingTrip.id} · ${trackingTrip.pickup} → ${trackingTrip.destination}`}
+          onClose={() => setTrackingTrip(null)}
         />
       )}
     </main>

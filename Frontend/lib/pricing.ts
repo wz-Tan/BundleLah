@@ -10,7 +10,7 @@ export const PRICING = {
   /** Cost per kilogram of cargo (RM). */
   RM_PER_KG: 0.55,
   /** Cost per kilometre of route distance (RM). */
-  RM_PER_KM: 1.2,
+  RM_PER_KM: 1.5,
   /** Multiplier applied when a shipment is flagged as priority. */
   PRIORITY_MULTIPLIER: 1.3,
   /** Recommended baseline price per kg offered on a trip (RM). */
