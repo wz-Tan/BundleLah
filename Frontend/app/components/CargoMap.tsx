@@ -1,4 +1,4 @@
-import { GoogleMap, LoadScript, LoadScriptNext, Marker } from "@react-google-maps/api";
+import { GoogleMap, LoadScriptNext, Marker } from "@react-google-maps/api";
 
 // container style needs explicit height since flex-1 alone won't size the map
 const mapContainerStyle = {

@@ -1,14 +1,15 @@
 "use client";
 
+import { clearCompanySession } from "@/lib/session";
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { clearCompanySession } from "@/lib/session";
 
 const NAV_LINKS = [
   { href: "/dashboard", label: "Dashboard" },
   { href: "/listings", label: "Listings" },
   { href: "/profile", label: "Profile" },
+  { href: "/activeOrders", label: "Your Orders" },
 ];
 
 export default function Header() {
