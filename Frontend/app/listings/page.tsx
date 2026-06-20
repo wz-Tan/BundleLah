@@ -15,7 +15,7 @@ import {
   buildCompanyNameMap,
   toCargoRequestItem,
 } from "@/lib/api";
-import { getCurrentCompanyId } from "@/lib/session";
+import { getCurrentCompanyId, getStoredCompany } from "@/lib/session";
 import { useEffect, useState } from "react";
 
 const PRIORITY_FILTERS = [
@@ -38,7 +38,8 @@ export default function CargoRequestsPage() {
 
   async function handleCreate(req: CargoRequest) {
     setSubmitError(null);
-    const companyId = getCurrentCompanyId() ?? 1;
+    const company = getStoredCompany();
+    const companyId = company?.id ?? 1;
     try {
       const created = await cargoRequests.create({
         company_id: companyId,
@@ -54,7 +55,7 @@ export default function CargoRequestsPage() {
         pickup_window_end: req.pickup_window_end,
         priority_flag: req.priority_flag,
       });
-      const item = toCargoRequestItem(created, "Your Company");
+      const item = toCargoRequestItem(created, company?.name ?? `Company #${companyId}`);
       // Backend has no budget column; keep the chosen budget for this session.
       if (req.budget_rm && req.budget_rm > 0) item.suggested_budget_rm = req.budget_rm;
       setRequests((prev) => [item, ...prev]);
@@ -119,7 +120,11 @@ export default function CargoRequestsPage() {
         ]);
         if (cancelled) return;
         const nameMap = buildCompanyNameMap(comps);
-        const companyId = getCurrentCompanyId();
+        const company = getStoredCompany();
+        const companyId = company?.id ?? null;
+        // Make sure the current company's own name is resolvable even if it
+        // isn't part of the fetched companies list.
+        if (company) nameMap.set(company.id, company.name);
         // Mark the current company's own requests so they can be cancelled.
         if (companyId != null) {
           setMyIds((prev) => {
@@ -134,9 +139,7 @@ export default function CargoRequestsPage() {
           reqs.map((r) =>
             toCargoRequestItem(
               r,
-              r.company_id === companyId
-                ? "Your Company"
-                : nameMap.get(r.company_id) ?? `Company #${r.company_id}`
+              nameMap.get(r.company_id) ?? `Company #${r.company_id}`
             )
           )
         );

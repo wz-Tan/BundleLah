@@ -103,6 +103,21 @@ export default function ActiveOrdersPage() {
     setSelectedPoolRequest(req);
   };
 
+  const handleDeleteRequest = async (id: string) => {
+    // Card ids look like "CR-123"; the backend wants the raw numeric id.
+    const numericId = Number(id.replace(/^CR-/, ""));
+    if (Number.isNaN(numericId)) return;
+
+    const prev = requests;
+    setRequests((current) => current.filter((r) => r.id !== id));
+    try {
+      await cargoRequests.remove(numericId);
+    } catch {
+      // Restore the list if the backend rejected the deletion.
+      setRequests(prev);
+    }
+  };
+
   const handleCloseModal = () => {
     setSelectedTrip(null);
     setSelectedPoolRequest(null);
@@ -152,7 +167,11 @@ export default function ActiveOrdersPage() {
               </p>
             )}
             {requests.map((req) => (
-              <RequestCard key={req.id} request={req} />
+              <RequestCard
+                key={req.id}
+                request={req}
+                onDelete={handleDeleteRequest}
+              />
             ))}
           </div>
         )}
