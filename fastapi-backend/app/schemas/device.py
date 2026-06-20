@@ -27,3 +27,7 @@ class DevicePublic(BaseModel):
     id: int
     cargo_match_id: int
     created_at: Optional[datetime] = None
+    temperature_threshold: Optional[float] = None
+    humidity_threshold: Optional[float] = None
+    ethylene_threshold: Optional[float] = None
+    motion_alarm: Optional[bool] = None

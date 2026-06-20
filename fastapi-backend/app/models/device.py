@@ -22,6 +22,10 @@ class Device(Base):
     # consider some diffie hellman key exchange?
     # or like at least some priv/pub key?
     created_at: Mapped[Optional[datetime]] = mapped_column(server_default=func.now())
+    temperature_threshold: Mapped[Optional[float]] = mapped_column(nullable=True)
+    humidity_threshold: Mapped[Optional[float]] = mapped_column(nullable=True)
+    ethylene_threshold: Mapped[Optional[float]] = mapped_column(nullable=True)
+    motion_alarm: Mapped[Optional[bool]] = mapped_column(nullable=True, default=None)
     
     cargo_match: Mapped[Optional["CargoMatch"]] = relationship(
         back_populates="devices"

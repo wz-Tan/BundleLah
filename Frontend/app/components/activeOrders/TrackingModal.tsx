@@ -321,6 +321,18 @@ export function TrackingModal({
               {/* Current Stats Panel */}
               {trackingRecords.length > 0 && (() => {
                 const latestRecord = trackingRecords[trackingRecords.length - 1];
+                console.log('[TrackingModal] device thresholds:', {
+                  temperature_threshold: device.temperature_threshold,
+                  humidity_threshold: device.humidity_threshold,
+                  ethylene_threshold: device.ethylene_threshold,
+                  motion_alarm: device.motion_alarm,
+                });
+                console.log('[TrackingModal] latest record values:', {
+                  temperature: latestRecord.temperature,
+                  humidity: latestRecord.humidity,
+                  ethylene_level: latestRecord.ethylene_level,
+                  motion_detected: latestRecord.motion_detected,
+                });
                 const tempExceeded = device.temperature_threshold && latestRecord.temperature && latestRecord.temperature > device.temperature_threshold;
                 const humExceeded = device.humidity_threshold && latestRecord.humidity && latestRecord.humidity > device.humidity_threshold;
                 const ethExceeded = device.ethylene_threshold && latestRecord.ethylene_level && latestRecord.ethylene_level > device.ethylene_threshold;
