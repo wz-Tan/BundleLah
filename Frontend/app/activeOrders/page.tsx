@@ -1,78 +1,161 @@
 "use client";
 
-import Link from "next/link";
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { cargoRequests, tripListings, cargoMatches } from "@/lib/api";
+import { getCurrentCompanyId } from "@/lib/session";
+import { recommendCargoPrice, haversineKm } from "@/lib/pricing";
+import { formatDate } from "@/app/components/listings/listingUtils";
+import type { CargoRequest } from "@/type";
 
-// Mock Data Type Definitions
-interface OrderRequest {
-  id: string;
+interface PoolReq {
+  id: number;
   pickup: string;
   destination: string;
   price: number;
-  status: "pending" | "accepted";
+  status: string;
 }
 
-interface TripListing {
-  id: string;
+interface TripView {
+  id: number;
   pickup: string;
   destination: string;
   dateTime: string;
-  poolingRequests: OrderRequest[];
+  poolingRequests: PoolReq[];
+}
+
+interface ReqView {
+  id: number;
+  pickup: string;
+  destination: string;
+  price: number;
+  status: string;
+}
+
+const GREEN_STATUSES = ["accepted", "matched", "in_transit", "delivered", "completed", "locked", "in_progress"];
+
+function isGreen(status: string) {
+  return GREEN_STATUSES.includes(status);
+}
+
+function cargoPrice(cr: CargoRequest): number {
+  const hasCoords =
+    cr.pickup_lat != null &&
+    cr.pickup_lng != null &&
+    cr.dropoff_lat != null &&
+    cr.dropoff_lng != null;
+  const distanceKm = hasCoords
+    ? haversineKm(
+        { lat: cr.pickup_lat, lng: cr.pickup_lng },
+        { lat: cr.dropoff_lat, lng: cr.dropoff_lng }
+      )
+    : 0;
+  return recommendCargoPrice({
+    weightKg: Number(cr.weight_kg) || 0,
+    distanceKm,
+    priority: cr.priority_flag,
+  });
 }
 
 export default function ActiveOrdersPage() {
-  // Tabs: "requests" or "trips"
   const [activeTab, setActiveTab] = useState<"requests" | "trips">("requests");
+  const [selectedTrip, setSelectedTrip] = useState<TripView | null>(null);
+  const [selectedPoolRequest, setSelectedPoolRequest] = useState<PoolReq | null>(null);
 
-  // Selected items for modal/pop-up logic
-  const [selectedTrip, setSelectedTrip] = useState<TripListing | null>(null);
-  const [selectedPoolRequest, setSelectedPoolRequest] =
-    useState<OrderRequest | null>(null);
+  const [requests, setRequests] = useState<ReqView[]>([]);
+  const [trips, setTrips] = useState<TripView[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [noSession, setNoSession] = useState(false);
 
-  // Mock Data
-  const requests: OrderRequest[] = [
-    {
-      id: "ORD-9482",
-      pickup: "Port Klang, MY",
-      destination: "Shah Alam, MY",
-      price: 450,
-      status: "pending",
-    },
-    {
-      id: "ORD-7391",
-      pickup: "Penang Port, MY",
-      destination: "Ipoh, MY",
-      price: 820,
-      status: "accepted",
-    },
-  ];
+  useEffect(() => {
+    let cancelled = false;
 
-  const trips: TripListing[] = [
-    {
-      id: "TRIP-001",
-      pickup: "Johor Port, MY",
-      destination: "Kuala Lumpur, MY",
-      dateTime: "June 25, 2026 - 08:30 AM",
-      poolingRequests: [
-        {
-          id: "REQ-112",
-          pickup: "Melaka Hub, MY",
-          destination: "Seremban, MY",
-          price: 200,
-          status: "pending",
-        },
-        {
-          id: "REQ-113",
-          pickup: "Muar, MY",
-          destination: "Kuala Lumpur, MY",
-          price: 350,
-          status: "pending",
-        },
-      ],
-    },
-  ];
+    async function load() {
+      setLoading(true);
+      setError(null);
+      const companyId = getCurrentCompanyId();
+      if (companyId == null) {
+        if (!cancelled) {
+          setNoSession(true);
+          setLoading(false);
+        }
+        return;
+      }
+      try {
+        const [reqs, tripList] = await Promise.all([
+          cargoRequests.list({ company_id: companyId }),
+          tripListings.list({ company_id: companyId }),
+        ]);
+        if (cancelled) return;
 
-  const handleOpenPoolModal = (trip: TripListing, req: OrderRequest) => {
+        setRequests(
+          reqs.map((cr) => ({
+            id: cr.id,
+            pickup: cr.pickup_address,
+            destination: cr.dropoff_address,
+            price: cargoPrice(cr),
+            status: cr.status ?? "open",
+          }))
+        );
+
+        // Resolve pooling requests (matches) for each trip.
+        const matchLists = await Promise.all(
+          tripList.map((t) =>
+            cargoMatches.list({ trip_listing_id: t.id }).catch(() => [])
+          )
+        );
+        if (cancelled) return;
+
+        const crIds = new Set<number>();
+        matchLists.flat().forEach((m) => crIds.add(m.cargo_request_id));
+        const crMap = new Map<number, CargoRequest>();
+        await Promise.all(
+          [...crIds].map(async (id) => {
+            try {
+              crMap.set(id, await cargoRequests.get(id));
+            } catch {
+              // ignore individual lookup failures
+            }
+          })
+        );
+        if (cancelled) return;
+
+        setTrips(
+          tripList.map((t, i) => ({
+            id: t.id,
+            pickup: t.origin_region,
+            destination: t.destination_region,
+            dateTime: formatDate(t.departure_window_start),
+            poolingRequests: matchLists[i].map((m) => {
+              const cr = crMap.get(m.cargo_request_id);
+              return {
+                id: m.id,
+                pickup: cr?.pickup_address ?? `Request #${m.cargo_request_id}`,
+                destination: cr?.dropoff_address ?? "—",
+                price: m.agreed_price_rm ?? (cr ? cargoPrice(cr) : 0),
+                status: m.status,
+              };
+            }),
+          }))
+        );
+      } catch (err) {
+        if (!cancelled) {
+          setError(
+            err instanceof Error ? err.message : "Failed to load active orders"
+          );
+        }
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    }
+
+    load();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const handleOpenPoolModal = (trip: TripView, req: PoolReq) => {
     setSelectedTrip(trip);
     setSelectedPoolRequest(req);
   };
@@ -121,130 +204,169 @@ export default function ActiveOrdersPage() {
           </button>
         </div>
 
-        {/* Requests Content */}
-        {activeTab === "requests" && (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {requests.map((req) => (
-              <div
-                key={req.id}
-                className="bg-white border border-gray-200 rounded-xl p-5 flex flex-col justify-between shadow-sm"
-              >
-                <div className="flex justify-between items-start mb-4">
-                  <div>
-                    <span className="text-xs font-semibold text-gray-400 uppercase tracking-wider">
-                      Order ID
-                    </span>
-                    <h3 className="text-sm font-bold text-gray-900">
-                      {req.id}
-                    </h3>
-                  </div>
-                  <span
-                    className={`text-xs px-2.5 py-1 rounded-full font-medium uppercase tracking-wide ${
-                      req.status === "accepted"
-                        ? "bg-green-100 text-green-700"
-                        : "bg-orange-100 text-orange-700"
-                    }`}
-                  >
-                    {req.status}
-                  </span>
-                </div>
-
-                <div className="space-y-2 text-sm text-gray-600 mb-4">
-                  <div>
-                    <strong className="text-gray-900">Pick Up:</strong>{" "}
-                    {req.pickup}
-                  </div>
-                  <div>
-                    <strong className="text-gray-900">Destination:</strong>{" "}
-                    {req.destination}
-                  </div>
-                </div>
-
-                <div className="border-t border-gray-100 pt-3 flex justify-between items-center">
-                  <span className="text-xs text-gray-400 font-medium uppercase">
-                    Price
-                  </span>
-                  <span className="text-lg font-semibold text-orange-500">
-                    RM {req.price}
-                  </span>
-                </div>
-              </div>
-            ))}
+        {noSession ? (
+          <div className="text-center py-24 text-sm text-gray-400">
+            Please log in to view your active orders.
           </div>
-        )}
-
-        {/* Trip Listings Content */}
-        {activeTab === "trips" && (
-          <div className="flex flex-col gap-6">
-            {trips.map((trip) => (
-              <div
-                key={trip.id}
-                className="bg-white border border-gray-200 rounded-xl p-6 shadow-sm grid grid-cols-1 lg:grid-cols-3 gap-6"
-              >
-                {/* Left Side: Trip Details */}
-                <div className="flex flex-col justify-between lg:border-r lg:border-gray-100 lg:pr-6">
-                  <div>
-                    <div className="flex justify-between items-start mb-2">
-                      <div>
-                        <span className="text-xs font-semibold text-gray-400 uppercase tracking-wider">
-                          Listing ID
-                        </span>
-                        <h3 className="text-sm font-bold text-gray-900">
-                          {trip.id}
-                        </h3>
-                      </div>
-                    </div>
-                    <p className="text-xs text-gray-400 mb-4">
-                      {trip.dateTime}
-                    </p>
-
-                    <div className="space-y-2 text-sm text-gray-600">
-                      <div>
-                        <strong className="text-gray-900">Pick Up:</strong>{" "}
-                        {trip.pickup}
-                      </div>
-                      <div>
-                        <strong className="text-gray-900">Destination:</strong>{" "}
-                        {trip.destination}
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="mt-6">
-                    <span className="text-xs font-semibold text-gray-400 uppercase tracking-wide block mb-2">
-                      Pooling Requests ({trip.poolingRequests.length})
-                    </span>
-                    <div className="flex flex-col gap-2">
-                      {trip.poolingRequests.map((req) => (
-                        <button
-                          key={req.id}
-                          onClick={() => handleOpenPoolModal(trip, req)}
-                          className="w-full text-left text-xs bg-orange-50 hover:bg-orange-100 text-orange-700 p-2.5 rounded-xl border border-orange-200/50 transition-colors flex justify-between items-center font-medium"
-                        >
-                          <span>
-                            {req.id} ({req.pickup.split(",")[0]} &rarr;{" "}
-                            {req.destination.split(",")[0]})
+        ) : loading ? (
+          <div className="text-center py-24 text-sm text-gray-400">
+            Loading your active orders...
+          </div>
+        ) : error ? (
+          <div className="text-center py-24">
+            <p className="text-base font-semibold text-red-500">
+              Couldn&apos;t load active orders
+            </p>
+            <p className="text-sm text-gray-400 mt-1">{error}</p>
+          </div>
+        ) : (
+          <>
+            {/* Requests Content */}
+            {activeTab === "requests" &&
+              (requests.length === 0 ? (
+                <div className="text-center py-24 text-sm text-gray-400">
+                  You have no cargo requests yet.
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {requests.map((req) => (
+                    <div
+                      key={req.id}
+                      className="bg-white border border-gray-200 rounded-xl p-5 flex flex-col justify-between shadow-sm"
+                    >
+                      <div className="flex justify-between items-start mb-4">
+                        <div>
+                          <span className="text-xs font-semibold text-gray-400 uppercase tracking-wider">
+                            Order ID
                           </span>
-                          <span className="font-bold">+RM {req.price}</span>
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                </div>
+                          <h3 className="text-sm font-bold text-gray-900">
+                            #REQ-{String(req.id).padStart(4, "0")}
+                          </h3>
+                        </div>
+                        <span
+                          className={`text-xs px-2.5 py-1 rounded-full font-medium uppercase tracking-wide ${
+                            isGreen(req.status)
+                              ? "bg-green-100 text-green-700"
+                              : "bg-orange-100 text-orange-700"
+                          }`}
+                        >
+                          {req.status}
+                        </span>
+                      </div>
 
-                {/* Right Side: Map Canvas Area */}
-                <div className="lg:col-span-2 bg-orange-50/50 border border-orange-100 rounded-xl min-h-[220px] flex flex-col items-center justify-center relative overflow-hidden">
-                  <div className="absolute inset-0 opacity-10 bg-[radial-gradient(#f97316_1px,transparent_1px)] [background-size:16px_16px]"></div>
-                  <span className="text-xs font-medium text-orange-400 uppercase tracking-wider z-10">
-                    Route Map Visualizer
-                  </span>
-                  <p className="text-xs text-gray-400 mt-1 z-10">
-                    {trip.pickup} &rarr; {trip.destination}
-                  </p>
+                      <div className="space-y-2 text-sm text-gray-600 mb-4">
+                        <div>
+                          <strong className="text-gray-900">Pick Up:</strong>{" "}
+                          {req.pickup}
+                        </div>
+                        <div>
+                          <strong className="text-gray-900">Destination:</strong>{" "}
+                          {req.destination}
+                        </div>
+                      </div>
+
+                      <div className="border-t border-gray-100 pt-3 flex justify-between items-center">
+                        <span className="text-xs text-gray-400 font-medium uppercase">
+                          Price
+                        </span>
+                        <span className="text-lg font-semibold text-orange-500">
+                          RM {req.price.toFixed(2)}
+                        </span>
+                      </div>
+                    </div>
+                  ))}
                 </div>
-              </div>
-            ))}
-          </div>
+              ))}
+
+            {/* Trip Listings Content */}
+            {activeTab === "trips" &&
+              (trips.length === 0 ? (
+                <div className="text-center py-24 text-sm text-gray-400">
+                  You have no trip listings yet.
+                </div>
+              ) : (
+                <div className="flex flex-col gap-6">
+                  {trips.map((trip) => (
+                    <div
+                      key={trip.id}
+                      className="bg-white border border-gray-200 rounded-xl p-6 shadow-sm grid grid-cols-1 lg:grid-cols-3 gap-6"
+                    >
+                      {/* Left Side: Trip Details */}
+                      <div className="flex flex-col justify-between lg:border-r lg:border-gray-100 lg:pr-6">
+                        <div>
+                          <div className="flex justify-between items-start mb-2">
+                            <div>
+                              <span className="text-xs font-semibold text-gray-400 uppercase tracking-wider">
+                                Listing ID
+                              </span>
+                              <h3 className="text-sm font-bold text-gray-900">
+                                #TRIP-{String(trip.id).padStart(4, "0")}
+                              </h3>
+                            </div>
+                          </div>
+                          <p className="text-xs text-gray-400 mb-4">
+                            {trip.dateTime}
+                          </p>
+
+                          <div className="space-y-2 text-sm text-gray-600">
+                            <div>
+                              <strong className="text-gray-900">Pick Up:</strong>{" "}
+                              {trip.pickup}
+                            </div>
+                            <div>
+                              <strong className="text-gray-900">
+                                Destination:
+                              </strong>{" "}
+                              {trip.destination}
+                            </div>
+                          </div>
+                        </div>
+
+                        <div className="mt-6">
+                          <span className="text-xs font-semibold text-gray-400 uppercase tracking-wide block mb-2">
+                            Pooling Requests ({trip.poolingRequests.length})
+                          </span>
+                          <div className="flex flex-col gap-2">
+                            {trip.poolingRequests.length === 0 ? (
+                              <p className="text-xs text-gray-400">
+                                No pooling requests yet.
+                              </p>
+                            ) : (
+                              trip.poolingRequests.map((req) => (
+                                <button
+                                  key={req.id}
+                                  onClick={() => handleOpenPoolModal(trip, req)}
+                                  className="w-full text-left text-xs bg-orange-50 hover:bg-orange-100 text-orange-700 p-2.5 rounded-xl border border-orange-200/50 transition-colors flex justify-between items-center font-medium"
+                                >
+                                  <span>
+                                    #{req.id} ({req.pickup.split(",")[0]} &rarr;{" "}
+                                    {req.destination.split(",")[0]})
+                                  </span>
+                                  <span className="font-bold">
+                                    +RM {req.price.toFixed(2)}
+                                  </span>
+                                </button>
+                              ))
+                            )}
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Right Side: Map Canvas Area */}
+                      <div className="lg:col-span-2 bg-orange-50/50 border border-orange-100 rounded-xl min-h-[220px] flex flex-col items-center justify-center relative overflow-hidden">
+                        <div className="absolute inset-0 opacity-10 bg-[radial-gradient(#f97316_1px,transparent_1px)] [background-size:16px_16px]"></div>
+                        <span className="text-xs font-medium text-orange-400 uppercase tracking-wider z-10">
+                          Route Map Visualizer
+                        </span>
+                        <p className="text-xs text-gray-400 mt-1 z-10">
+                          {trip.pickup} &rarr; {trip.destination}
+                        </p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ))}
+          </>
         )}
       </div>
 
@@ -268,7 +390,7 @@ export default function ActiveOrdersPage() {
                     Extra Earnings
                   </span>
                   <span className="text-xl font-bold">
-                    +RM {selectedPoolRequest.price}
+                    +RM {selectedPoolRequest.price.toFixed(2)}
                   </span>
                 </div>
                 <div>
@@ -292,7 +414,7 @@ export default function ActiveOrdersPage() {
                       Request Breakdown
                     </span>
                     <span className="text-xs font-mono text-gray-400">
-                      {selectedPoolRequest.id}
+                      #{selectedPoolRequest.id}
                     </span>
                   </div>
 
@@ -318,7 +440,7 @@ export default function ActiveOrdersPage() {
                         Base Payout
                       </label>
                       <p className="text-base font-semibold text-gray-900">
-                        RM {selectedPoolRequest.price}
+                        RM {selectedPoolRequest.price.toFixed(2)}
                       </p>
                     </div>
                   </div>

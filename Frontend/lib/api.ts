@@ -15,6 +15,7 @@ import type {
   GetCargoRequestItem,
   GetTripListingItem,
 } from "@/type";
+import { recommendCargoPrice, haversineKm, recommendTripPricePerKg } from "./pricing";
 
 export const API_BASE_URL =
   process.env.NEXT_PUBLIC_API_URL?.replace(/\/$/, "") || "http://127.0.0.1:8000";
@@ -289,17 +290,33 @@ export const carbonLogs = {
 // =========================================================================
 
 // Rough cost estimate used for display only (backend has no pricing engine yet).
-const ESTIMATED_RM_PER_KG = 0.55;
-
 export function estimateBudgetRm(weightKg: number | null | undefined): number {
-  if (!weightKg || weightKg <= 0) return 0;
-  return Math.round(weightKg * ESTIMATED_RM_PER_KG * 100) / 100;
+  return recommendCargoPrice({ weightKg: weightKg ?? 0 });
 }
 
 export function toCargoRequestItem(
   cr: CargoRequest,
   companyName: string
 ): GetCargoRequestItem {
+  const hasCoords =
+    cr.pickup_lat != null &&
+    cr.pickup_lng != null &&
+    cr.dropoff_lat != null &&
+    cr.dropoff_lng != null;
+  const distanceKm = hasCoords
+    ? haversineKm(
+        { lat: cr.pickup_lat, lng: cr.pickup_lng },
+        { lat: cr.dropoff_lat, lng: cr.dropoff_lng }
+      )
+    : 0;
+  // Prefer the budget the requester set; otherwise recommend one.
+  const budget =
+    cr.budget_rm ??
+    recommendCargoPrice({
+      weightKg: cr.weight_kg ?? 0,
+      distanceKm,
+      priority: cr.priority_flag,
+    });
   return {
     id: cr.id,
     sender_company: companyName,
@@ -319,7 +336,7 @@ export function toCargoRequestItem(
       volume_m3: cr.volume_m3 ?? 0,
     },
     priority_flag: cr.priority_flag,
-    suggested_budget_rm: estimateBudgetRm(cr.weight_kg),
+    suggested_budget_rm: budget,
   };
 }
 
@@ -328,6 +345,15 @@ export function toTripListingItem(
   company: Company | undefined,
   vehicle: Vehicle | undefined
 ): GetTripListingItem {
+  // Price is persisted inside route_json (no dedicated column on the backend).
+  let routePrice: number | undefined;
+  if (tl.route_json && typeof tl.route_json === "object") {
+    const raw = (tl.route_json as Record<string, unknown>).price_per_kg_rm;
+    if (typeof raw === "number" || (typeof raw === "string" && raw !== "")) {
+      const n = Number(raw);
+      if (!isNaN(n) && n > 0) routePrice = n;
+    }
+  }
   return {
     id: tl.id,
     logistics_provider: {
@@ -344,7 +370,8 @@ export function toTripListingItem(
       volume_m3: tl.available_volume_m3 ?? 0,
     },
     match_status: tl.status,
-    estimated_price_per_kg_rm: ESTIMATED_RM_PER_KG,
+    estimated_price_per_kg_rm:
+      tl.price_per_kg_rm ?? routePrice ?? recommendTripPricePerKg(),
   };
 }
 

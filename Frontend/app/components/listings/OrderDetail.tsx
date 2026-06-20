@@ -1,6 +1,9 @@
 "use client";
 
-import type { GetCargoRequestItem } from "@/type";
+import { useEffect, useState } from "react";
+import type { GetCargoRequestItem, TripListing } from "@/type";
+import { tripListings, cargoMatches } from "@/lib/api";
+import { getCurrentCompanyId } from "@/lib/session";
 import { formatTime } from "./listingUtils";
 
 export function OrderDetail({
@@ -13,6 +16,57 @@ export function OrderDetail({
   const pickupStart = order.pickup.window_start
     ? formatTime(order.pickup.window_start)
     : "Flexible";
+
+  const [myTrips, setMyTrips] = useState<TripListing[]>([]);
+  const [selectedTripId, setSelectedTripId] = useState<number | null>(null);
+  const [loadingTrips, setLoadingTrips] = useState(true);
+  const [submitting, setSubmitting] = useState(false);
+  const [result, setResult] = useState<{ ok: boolean; msg: string } | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    const companyId = getCurrentCompanyId();
+    if (companyId == null) {
+      setLoadingTrips(false);
+      return;
+    }
+    tripListings
+      .list({ company_id: companyId, status_filter: "open" })
+      .then((trips) => {
+        if (cancelled) return;
+        setMyTrips(trips);
+        setSelectedTripId(trips[0]?.id ?? null);
+      })
+      .catch(() => {})
+      .finally(() => {
+        if (!cancelled) setLoadingTrips(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  async function handleOffer() {
+    if (selectedTripId == null) return;
+    setSubmitting(true);
+    setResult(null);
+    try {
+      await cargoMatches.create({
+        trip_listing_id: selectedTripId,
+        cargo_request_id: order.id,
+        initiated_by: "carrier",
+        agreed_price_rm: order.suggested_budget_rm,
+      });
+      setResult({ ok: true, msg: "Offer sent — the cargo owner will review it." });
+    } catch (err) {
+      setResult({
+        ok: false,
+        msg: err instanceof Error ? err.message : "Failed to send offer.",
+      });
+    } finally {
+      setSubmitting(false);
+    }
+  }
 
   return (
     <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center">
@@ -93,10 +147,70 @@ export function OrderDetail({
           </div>
         </div>
 
-        <div className="px-5 py-4 border-t border-black/[.06] dark:border-white/[.08]">
-          <button className="w-full h-11 rounded-full bg-zinc-900 dark:bg-zinc-50 text-white dark:text-zinc-900 text-sm font-semibold hover:bg-zinc-700 dark:hover:bg-zinc-200 transition-colors">
-            Offer To Pool This Cargo
-          </button>
+        <div className="px-5 py-4 border-t border-black/[.06] dark:border-white/[.08] flex flex-col gap-3">
+          {result && (
+            <p
+              className={`text-xs font-medium ${
+                result.ok ? "text-emerald-600" : "text-red-500"
+              }`}
+            >
+              {result.msg}
+            </p>
+          )}
+
+          {loadingTrips ? (
+            <button
+              disabled
+              className="w-full h-11 rounded-full bg-zinc-200 dark:bg-zinc-700 text-sm font-semibold text-zinc-500"
+            >
+              Loading your trips…
+            </button>
+          ) : myTrips.length === 0 ? (
+            <div className="text-center">
+              <p className="text-xs text-zinc-400 mb-2">
+                You need an open trip to offer pooling on this cargo.
+              </p>
+              <button
+                disabled
+                className="w-full h-11 rounded-full bg-zinc-200 dark:bg-zinc-700 text-sm font-semibold text-zinc-500 cursor-not-allowed"
+              >
+                List a trip first
+              </button>
+            </div>
+          ) : result?.ok ? (
+            <button
+              onClick={onClose}
+              className="w-full h-11 rounded-full bg-emerald-600 text-white text-sm font-semibold hover:bg-emerald-500 transition-colors"
+            >
+              Done
+            </button>
+          ) : (
+            <>
+              <div className="flex flex-col gap-1">
+                <label className="text-[10px] uppercase tracking-widest text-zinc-400 font-semibold">
+                  Offer with trip
+                </label>
+                <select
+                  value={selectedTripId ?? ""}
+                  onChange={(e) => setSelectedTripId(Number(e.target.value))}
+                  className="h-10 rounded-lg border border-solid border-black/[.08] dark:border-white/[.1] bg-zinc-50 dark:bg-zinc-800 px-3 text-sm text-zinc-900 dark:text-zinc-100 outline-none focus:border-amber-400"
+                >
+                  {myTrips.map((t) => (
+                    <option key={t.id} value={t.id}>
+                      #{t.id} · {t.origin_region} → {t.destination_region}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <button
+                onClick={handleOffer}
+                disabled={submitting || selectedTripId == null}
+                className="w-full h-11 rounded-full bg-zinc-900 dark:bg-zinc-50 text-white dark:text-zinc-900 text-sm font-semibold hover:bg-zinc-700 dark:hover:bg-zinc-200 transition-colors disabled:opacity-60"
+              >
+                {submitting ? "Sending offer…" : "Offer To Pool This Cargo"}
+              </button>
+            </>
+          )}
         </div>
       </div>
     </div>

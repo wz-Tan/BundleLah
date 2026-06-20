@@ -16,15 +16,18 @@ function formatTripDate(iso: string) {
 export function TripCard({
   trip,
   onSelect,
+  onCancel,
 }: {
   trip: GetTripListingItem;
   onSelect: (trip: GetTripListingItem) => void;
+  onCancel?: (id: number) => void;
 }) {
   return (
-    <button
-      onClick={() => onSelect(trip)}
-      className="w-full rounded-lg border border-solid border-black/[.06] bg-white p-4 text-left transition-all hover:border-black/[.12] hover:shadow-md active:scale-[0.995] dark:border-white/[.08] dark:bg-zinc-900 dark:hover:border-white/[.14]"
-    >
+    <div className="relative">
+      <button
+        onClick={() => onSelect(trip)}
+        className="w-full rounded-lg border border-solid border-black/[.06] bg-white p-4 text-left transition-all hover:border-black/[.12] hover:shadow-md active:scale-[0.995] dark:border-white/[.08] dark:bg-zinc-900 dark:hover:border-white/[.14]"
+      >
       <div className="mb-3 flex items-start justify-between gap-3">
         <div className="min-w-0">
           <p className="text-sm font-semibold text-zinc-900 dark:text-zinc-50">
@@ -80,7 +83,27 @@ export function TripCard({
             </span>
           </span>
         </div>
+        {trip.estimated_price_per_kg_rm != null && (
+          <span className="inline-flex flex-col items-end">
+            <span className="mb-0.5 text-[10px] font-medium uppercase tracking-widest text-zinc-400">
+              Per kg
+            </span>
+            <span className="text-sm font-bold text-emerald-600 tabular-nums">
+              RM {trip.estimated_price_per_kg_rm.toFixed(2)}
+            </span>
+          </span>
+        )}
       </div>
-    </button>
+      </button>
+
+      {onCancel && (
+        <button
+          onClick={() => onCancel(trip.id)}
+          className="absolute bottom-4 right-4 h-7 px-3 rounded-full border border-solid border-red-200 dark:border-red-900 bg-white dark:bg-zinc-900 text-[11px] font-semibold text-red-500 hover:bg-red-50 dark:hover:bg-red-950/40 transition-colors"
+        >
+          Cancel posting
+        </button>
+      )}
+    </div>
   );
 }

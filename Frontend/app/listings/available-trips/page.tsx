@@ -1,8 +1,9 @@
 "use client";
 
 import { tripListings, companies, vehicles, toTripListingItem } from "@/lib/api";
+import { getCurrentCompanyId } from "@/lib/session";
 import { useEffect, useState } from "react";
-import type { GetTripListingItem, GetTripListingsResponse, TripListing } from "@/type";
+import type { GetTripListingItem, TripListing } from "@/type";
 import {
   CreateTripModal,
   ListingModeTabs,
@@ -10,99 +11,61 @@ import {
   TripDetail
 } from "@/app/components/listings";
 
-const MOCK_TRIP_LISTINGS: GetTripListingsResponse = {
-  results: [
-    {
-      id: 1,
-      logistics_provider: {
-        company_id: 11,
-        name: "Sarawak Freight Co.",
-        license_plate: "QAA 2381",
-        vehicle_type: "5-ton box truck",
-      },
-      origin_region: "Bintawa Industrial Estate, Kuching",
-      destination_region: "Demak Laut Industrial Park, Kuching",
-      departure_window_start: "2026-06-21T08:30:00Z",
-      available_capacity: {
-        weight_kg: 420,
-        volume_m3: 5.4,
-      },
-      match_status: "open",
-    },
-    {
-      id: 2,
-      logistics_provider: {
-        company_id: 12,
-        name: "Kuching Consolidated Logistics",
-        license_plate: "QAB 9027",
-        vehicle_type: "3-ton lorry",
-      },
-      origin_region: "Pending Industrial Park, Kuching",
-      destination_region: "Kuching City Centre",
-      departure_window_start: "2026-06-21T09:15:00Z",
-      available_capacity: {
-        weight_kg: 260,
-        volume_m3: 3.1,
-      },
-      match_status: "open",
-    },
-    {
-      id: 3,
-      logistics_provider: {
-        company_id: 13,
-        name: "Borneo RouteLink",
-        license_plate: "QAC 6615",
-        vehicle_type: "10-ton curtain sider",
-      },
-      origin_region: "Kuching Port Authority, Pending",
-      destination_region: "Batu Kawa New Township, Kuching",
-      departure_window_start: "2026-06-22T06:00:00Z",
-      available_capacity: {
-        weight_kg: 1100,
-        volume_m3: 11.8,
-      },
-      match_status: "locked",
-    },
-    {
-      id: 4,
-      logistics_provider: {
-        company_id: 14,
-        name: "Tabuan Fleet Services",
-        license_plate: "QAD 4472",
-        vehicle_type: "van",
-      },
-      origin_region: "Tabuan Jaya Commercial Centre, Kuching",
-      destination_region: "Jalan Padungan, Kuching",
-      departure_window_start: "2026-06-22T13:00:00Z",
-      available_capacity: {
-        weight_kg: 95,
-        volume_m3: 1.6,
-      },
-      match_status: "open",
-    },
-  ],
-};
-
-const CAPACITY_FILTERS = [
-  { value: "all", label: "All capacity" },
-  { value: "small", label: "Under 200 kg" },
-  { value: "medium", label: "200-600 kg" },
-  { value: "large", label: "600 kg+" },
-] as const;
-
-type CapacityFilter = (typeof CAPACITY_FILTERS)[number]["value"];
-
 export default function AvailableTripsPage() {
   const [search, setSearch] = useState("");
   const [selected, setSelected] = useState<GetTripListingItem | null>(null);
   const [showCreate, setShowCreate] = useState(false);
+  const [trips, setTrips] = useState<GetTripListingItem[]>([]);
+  // Ids of trips listed by the current user this session (cancellable).
+  const [myIds, setMyIds] = useState<Set<number>>(new Set());
+  const [submitError, setSubmitError] = useState<string | null>(null);
 
-  function handleCreate(trip: TripListing) {
-    console.log("New trip listing:", trip);
-    setShowCreate(false);
+  async function handleCreate(trip: TripListing) {
+    setSubmitError(null);
+    const companyId = getCurrentCompanyId() ?? 1;
+    try {
+      const created = await tripListings.create({
+        company_id: companyId,
+        vehicle_id: trip.vehicle_id ?? undefined,
+        origin_region: trip.origin_region,
+        destination_region: trip.destination_region,
+        // Persist the chosen price inside route_json (no dedicated column).
+        route_json: {
+          ...(trip.route_json && typeof trip.route_json === "object"
+            ? (trip.route_json as Record<string, unknown>)
+            : {}),
+          price_per_kg_rm: trip.price_per_kg_rm,
+        },
+        departure_window_start: trip.departure_window_start,
+        available_weight_kg: trip.available_weight_kg,
+        available_volume_m3: trip.available_volume_m3,
+      });
+      const item = toTripListingItem(created, undefined, undefined);
+      setTrips((prev) => [item, ...prev]);
+      setMyIds((prev) => new Set(prev).add(created.id));
+      setShowCreate(false);
+    } catch (err) {
+      setSubmitError(
+        err instanceof Error ? err.message : "Failed to save the trip."
+      );
+    }
   }
 
-  const [trips, setTrips] = useState<GetTripListingItem[]>([]);
+  async function handleCancel(id: number) {
+    const prevTrips = trips;
+    setTrips((prev) => prev.filter((t) => t.id !== id));
+    setMyIds((prev) => {
+      const next = new Set(prev);
+      next.delete(id);
+      return next;
+    });
+    try {
+      await tripListings.remove(id);
+    } catch {
+      setTrips(prevTrips);
+    }
+  }
+
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -121,6 +84,17 @@ export default function AvailableTripsPage() {
         if (cancelled) return;
         const companyMap = new Map(comps.map((c) => [c.id, c]));
         const vehicleMap = new Map(vehs.map((v) => [v.id, v]));
+        const companyId = getCurrentCompanyId();
+        // Mark the current company's own trips so they can be cancelled.
+        if (companyId != null) {
+          setMyIds((prev) => {
+            const next = new Set(prev);
+            listings.forEach((tl) => {
+              if (tl.company_id === companyId) next.add(tl.id);
+            });
+            return next;
+          });
+        }
         setTrips(
           listings.map((tl) =>
             toTripListingItem(
@@ -186,6 +160,12 @@ export default function AvailableTripsPage() {
           + List a trip
         </button>
 
+        {submitError && (
+          <div className="mb-4 rounded-lg border border-red-200 bg-red-50 px-4 py-2.5 text-sm text-red-600">
+            {submitError}
+          </div>
+        )}
+
         <ListingModeTabs />
 
         <div className="relative mb-6">
@@ -222,7 +202,12 @@ export default function AvailableTripsPage() {
         ) : filtered.length > 0 ? (
           <div className="flex flex-col gap-3">
             {filtered.map((trip) => (
-              <TripCard key={trip.id} trip={trip} onSelect={setSelected} />
+              <TripCard
+                key={trip.id}
+                trip={trip}
+                onSelect={setSelected}
+                onCancel={myIds.has(trip.id) ? handleCancel : undefined}
+              />
             ))}
           </div>
         ) : (

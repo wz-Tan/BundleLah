@@ -13,6 +13,7 @@ import {
   buildCompanyNameMap,
   toCargoRequestItem,
 } from "@/lib/api";
+import { getCurrentCompanyId } from "@/lib/session";
 import { useEffect, useState } from "react";
 
 const PRIORITY_FILTERS = [
@@ -28,13 +29,58 @@ export default function CargoRequestsPage() {
   const [priorityFilter, setPriorityFilter] = useState<PriorityFilter>("all");
   const [selected, setSelected] = useState<GetCargoRequestItem | null>(null);
   const [showCreate, setShowCreate] = useState(false);
+  const [requests, setRequests] = useState<GetCargoRequestItem[]>([]);
+  // Ids of postings created by the current user this session (cancellable).
+  const [myIds, setMyIds] = useState<Set<number>>(new Set());
+  const [submitError, setSubmitError] = useState<string | null>(null);
 
-  function handleCreate(req: CargoRequest) {
-    console.log("New cargo request:", req);
-    setShowCreate(false);
+  async function handleCreate(req: CargoRequest) {
+    setSubmitError(null);
+    const companyId = getCurrentCompanyId() ?? 1;
+    try {
+      const created = await cargoRequests.create({
+        company_id: companyId,
+        pickup_address: req.pickup_address,
+        pickup_lat: req.pickup_lat,
+        pickup_lng: req.pickup_lng,
+        dropoff_address: req.dropoff_address,
+        dropoff_lat: req.dropoff_lat,
+        dropoff_lng: req.dropoff_lng,
+        weight_kg: req.weight_kg,
+        volume_m3: req.volume_m3,
+        pickup_window_start: req.pickup_window_start,
+        pickup_window_end: req.pickup_window_end,
+        priority_flag: req.priority_flag,
+      });
+      const item = toCargoRequestItem(created, "Your Company");
+      // Backend has no budget column; keep the chosen budget for this session.
+      if (req.budget_rm && req.budget_rm > 0) item.suggested_budget_rm = req.budget_rm;
+      setRequests((prev) => [item, ...prev]);
+      setMyIds((prev) => new Set(prev).add(created.id));
+      setShowCreate(false);
+    } catch (err) {
+      setSubmitError(
+        err instanceof Error ? err.message : "Failed to save the request."
+      );
+    }
   }
 
-  const [requests, setRequests] = useState<GetCargoRequestItem[]>([]);
+  async function handleCancel(id: number) {
+    const prevRequests = requests;
+    setRequests((prev) => prev.filter((r) => r.id !== id));
+    setMyIds((prev) => {
+      const next = new Set(prev);
+      next.delete(id);
+      return next;
+    });
+    try {
+      await cargoRequests.remove(id);
+    } catch {
+      // Roll back if the backend rejected the deletion.
+      setRequests(prevRequests);
+    }
+  }
+
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -51,11 +97,24 @@ export default function CargoRequestsPage() {
         ]);
         if (cancelled) return;
         const nameMap = buildCompanyNameMap(comps);
+        const companyId = getCurrentCompanyId();
+        // Mark the current company's own requests so they can be cancelled.
+        if (companyId != null) {
+          setMyIds((prev) => {
+            const next = new Set(prev);
+            reqs.forEach((r) => {
+              if (r.company_id === companyId) next.add(r.id);
+            });
+            return next;
+          });
+        }
         setRequests(
           reqs.map((r) =>
             toCargoRequestItem(
               r,
-              nameMap.get(r.company_id) ?? `Company #${r.company_id}`
+              r.company_id === companyId
+                ? "Your Company"
+                : nameMap.get(r.company_id) ?? `Company #${r.company_id}`
             )
           )
         );
@@ -120,6 +179,12 @@ export default function CargoRequestsPage() {
           + New request
         </button>
 
+        {submitError && (
+          <div className="mb-4 rounded-lg border border-red-200 bg-red-50 px-4 py-2.5 text-sm text-red-600">
+            {submitError}
+          </div>
+        )}
+
         <ListingModeTabs />
 
         <div className="relative mb-4">
@@ -172,7 +237,12 @@ export default function CargoRequestsPage() {
         ) : filtered.length > 0 ? (
           <div className="flex flex-col gap-3">
             {filtered.map((order) => (
-              <OrderCard key={order.id} order={order} onSelect={setSelected} />
+              <OrderCard
+                key={order.id}
+                order={order}
+                onSelect={setSelected}
+                onCancel={myIds.has(order.id) ? handleCancel : undefined}
+              />
             ))}
           </div>
         ) : (

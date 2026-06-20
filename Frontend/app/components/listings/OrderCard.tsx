@@ -7,9 +7,11 @@ import { formatTime, truncate } from "./listingUtils";
 export function OrderCard({
   order,
   onSelect,
+  onCancel,
 }: {
   order: GetCargoRequestItem;
   onSelect: (o: GetCargoRequestItem) => void;
+  onCancel?: (id: number) => void;
 }) {
   const pickupStart = order.pickup.window_start
     ? formatTime(order.pickup.window_start)
@@ -22,12 +24,13 @@ export function OrderCard({
     : "Any day";
 
   return (
-    <button
-      onClick={() => onSelect(order)}
-      className={`w-full text-left border border-solid border-black/[.06] dark:border-white/[.08] border-l-4 ${
-        order.priority_flag ? "border-l-amber-400" : "border-l-emerald-500"
-      } rounded-lg bg-white dark:bg-zinc-900 p-4 transition-all hover:shadow-md hover:border-black/[.12] dark:hover:border-white/[.14] active:scale-[0.995]`}
-    >
+    <div className="relative">
+      <button
+        onClick={() => onSelect(order)}
+        className={`w-full text-left border border-solid border-black/[.06] dark:border-white/[.08] border-l-4 ${
+          order.priority_flag ? "border-l-amber-400" : "border-l-emerald-500"
+        } rounded-lg bg-white dark:bg-zinc-900 p-4 transition-all hover:shadow-md hover:border-black/[.12] dark:hover:border-white/[.14] active:scale-[0.995]`}
+      >
       <div className="flex items-start justify-between gap-3 mb-3">
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 mb-0.5">
@@ -72,6 +75,16 @@ export function OrderCard({
           <DataPill label="Pickup" value={`${pickupDate}, ${pickupStart}`} />
         </div>
       </div>
-    </button>
+      </button>
+
+      {onCancel && (
+        <button
+          onClick={() => onCancel(order.id)}
+          className="absolute bottom-3 right-3 h-7 px-3 rounded-full border border-solid border-red-200 dark:border-red-900 bg-white dark:bg-zinc-900 text-[11px] font-semibold text-red-500 hover:bg-red-50 dark:hover:bg-red-950/40 transition-colors"
+        >
+          Cancel posting
+        </button>
+      )}
+    </div>
   );
 }
