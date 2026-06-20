@@ -1,4 +1,4 @@
-import { GoogleMap, LoadScript, Marker } from "@react-google-maps/api";
+import { GoogleMap, LoadScript, LoadScriptNext, Marker } from "@react-google-maps/api";
 
 // container style needs explicit height since flex-1 alone won't size the map
 const mapContainerStyle = {
@@ -29,7 +29,7 @@ export function CargoMap({
   markers = [],
 }: CargoMapProps) {
   return (
-    <LoadScript googleMapsApiKey={GOOGLE_MAPS_API_KEY || ""}>
+    <LoadScriptNext googleMapsApiKey={GOOGLE_MAPS_API_KEY || ""}>
       <GoogleMap mapContainerStyle={mapContainerStyle} center={center} zoom={6}>
         {markers.map((m, i) => (
           <Marker
@@ -39,6 +39,6 @@ export function CargoMap({
           />
         ))}
       </GoogleMap>
-    </LoadScript>
+    </LoadScriptNext>
   );
 }
