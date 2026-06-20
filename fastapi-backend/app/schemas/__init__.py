@@ -1,5 +1,6 @@
 from .company import CompanyBase, CompanyCreate, CompanyUpdate, CompanyRead
-from .token import Token, TokenData
+from .auth import LoginRequest
+from .vehicle import VehicleBase, VehicleCreate, VehicleUpdate, VehicleRead
 from .cargo_request import (
     CargoRequestBase,
     CargoRequestCreate,
@@ -31,8 +32,11 @@ __all__ = [
     "CompanyCreate",
     "CompanyUpdate",
     "CompanyRead",
-    "Token",
-    "TokenData",
+    "LoginRequest",
+    "VehicleBase",
+    "VehicleCreate",
+    "VehicleUpdate",
+    "VehicleRead",
     "CargoRequestBase",
     "CargoRequestCreate",
     "CargoRequestUpdate",

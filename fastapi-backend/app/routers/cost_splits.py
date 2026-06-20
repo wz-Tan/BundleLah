@@ -5,19 +5,15 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy import select, or_
 from sqlalchemy.orm import Session
 
-from app.dependencies import get_db, get_current_company
-from app.models import CostSplit, Company
+from app.dependencies import get_db
+from app.models import CostSplit
 from app.schemas import CostSplitCreate, CostSplitUpdate, CostSplitRead
 
 router = APIRouter(prefix="/cost-splits", tags=["cost-splits"])
 
 
 @router.post("", response_model=CostSplitRead, status_code=status.HTTP_201_CREATED)
-def create_cost_split(
-    payload: CostSplitCreate,
-    db: Session = Depends(get_db),
-    current_company: Company = Depends(get_current_company),
-):
+def create_cost_split(payload: CostSplitCreate, db: Session = Depends(get_db)):
     cost_split = CostSplit(**payload.model_dump())
     db.add(cost_split)
     db.commit()
@@ -27,24 +23,25 @@ def create_cost_split(
 
 @router.get("", response_model=List[CostSplitRead])
 def list_cost_splits(
+    company_id: Optional[int] = None,
     role: Optional[str] = None,  # "payer" | "payee"
     skip: int = 0,
     limit: int = 50,
     db: Session = Depends(get_db),
-    current_company: Company = Depends(get_current_company),
 ):
     stmt = select(CostSplit)
-    if role == "payer":
-        stmt = stmt.where(CostSplit.payer_company_id == current_company.id)
-    elif role == "payee":
-        stmt = stmt.where(CostSplit.payee_company_id == current_company.id)
-    else:
-        stmt = stmt.where(
-            or_(
-                CostSplit.payer_company_id == current_company.id,
-                CostSplit.payee_company_id == current_company.id,
+    if company_id is not None:
+        if role == "payer":
+            stmt = stmt.where(CostSplit.payer_company_id == company_id)
+        elif role == "payee":
+            stmt = stmt.where(CostSplit.payee_company_id == company_id)
+        else:
+            stmt = stmt.where(
+                or_(
+                    CostSplit.payer_company_id == company_id,
+                    CostSplit.payee_company_id == company_id,
+                )
             )
-        )
     stmt = stmt.offset(skip).limit(limit)
     return db.scalars(stmt).all()
 
@@ -60,20 +57,11 @@ def get_cost_split(cost_split_id: int, db: Session = Depends(get_db)):
 
 
 @router.post("/{cost_split_id}/pay", response_model=CostSplitRead)
-def pay_cost_split(
-    cost_split_id: int,
-    db: Session = Depends(get_db),
-    current_company: Company = Depends(get_current_company),
-):
+def pay_cost_split(cost_split_id: int, db: Session = Depends(get_db)):
     cost_split = db.get(CostSplit, cost_split_id)
     if cost_split is None:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND, detail="Cost split not found"
-        )
-    if cost_split.payer_company_id != current_company.id:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Only the payer can settle this cost split",
         )
     if cost_split.payment_status == "paid":
         raise HTTPException(

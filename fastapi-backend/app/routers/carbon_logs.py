@@ -4,19 +4,15 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from app.dependencies import get_db, get_current_company
-from app.models import CarbonLog, Company
+from app.dependencies import get_db
+from app.models import CarbonLog
 from app.schemas import CarbonLogCreate, CarbonLogRead
 
 router = APIRouter(prefix="/carbon-logs", tags=["carbon-logs"])
 
 
 @router.post("", response_model=CarbonLogRead, status_code=status.HTTP_201_CREATED)
-def create_carbon_log(
-    payload: CarbonLogCreate,
-    db: Session = Depends(get_db),
-    current_company: Company = Depends(get_current_company),
-):
+def create_carbon_log(payload: CarbonLogCreate, db: Session = Depends(get_db)):
     carbon_log = CarbonLog(**payload.model_dump())
     db.add(carbon_log)
     db.commit()
@@ -31,7 +27,6 @@ def list_carbon_logs(
     skip: int = 0,
     limit: int = 50,
     db: Session = Depends(get_db),
-    current_company: Company = Depends(get_current_company),
 ):
     stmt = select(CarbonLog)
     if trip_listing_id is not None:

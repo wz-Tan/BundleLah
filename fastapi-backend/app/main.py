@@ -3,6 +3,7 @@ from fastapi import FastAPI
 from app.routers import (
     auth,
     companies,
+    vehicles,
     cargo_requests,
     trip_listings,
     cargo_matches,
@@ -14,6 +15,7 @@ app = FastAPI(title="BundleLah API")
 
 app.include_router(auth.router)
 app.include_router(companies.router)
+app.include_router(vehicles.router)
 app.include_router(cargo_requests.router)
 app.include_router(trip_listings.router)
 app.include_router(cargo_matches.router)

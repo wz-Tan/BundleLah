@@ -17,6 +17,7 @@ from ..db.database import Base
 
 if TYPE_CHECKING:
     from .company import Company
+    from .vehicle import Vehicle
     from .cargo_match import CargoMatch
     from .carbon_log import CarbonLog
 
@@ -29,6 +30,9 @@ class TripListing(Base):
     id: Mapped[int] = mapped_column(primary_key=True)
     company_id: Mapped[Optional[int]] = mapped_column(
         ForeignKey("companies.id", ondelete="CASCADE")
+    )
+    vehicle_id: Mapped[Optional[int]] = mapped_column(
+        ForeignKey("vehicles.id", ondelete="SET NULL")
     )
     origin_region: Mapped[str] = mapped_column(String(100), nullable=False)
     destination_region: Mapped[str] = mapped_column(String(100), nullable=False)
@@ -47,6 +51,9 @@ class TripListing(Base):
     )
 
     company: Mapped[Optional["Company"]] = relationship(
+        back_populates="trip_listings"
+    )
+    vehicle: Mapped[Optional["Vehicle"]] = relationship(
         back_populates="trip_listings"
     )
     matches: Mapped[List["CargoMatch"]] = relationship(

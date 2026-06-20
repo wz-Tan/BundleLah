@@ -11,6 +11,7 @@ TripListingStatus = Literal[
 
 class TripListingBase(BaseModel):
     company_id: int
+    vehicle_id: Optional[int] = None
     origin_region: str
     destination_region: str
     route_json: Optional[Any] = None
@@ -24,6 +25,7 @@ class TripListingCreate(TripListingBase):
 
 
 class TripListingUpdate(BaseModel):
+    vehicle_id: Optional[int] = None
     origin_region: Optional[str] = None
     destination_region: Optional[str] = None
     route_json: Optional[Any] = None

@@ -1,12 +1,11 @@
 from fastapi import APIRouter, Depends, HTTPException, status
-from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from app.dependencies import get_db, get_current_company
-from app.core.security import hash_password, verify_password, create_access_token
+from app.dependencies import get_db
+from app.core.security import hash_password, verify_password
 from app.models import Company
-from app.schemas import CompanyCreate, CompanyRead, Token
+from app.schemas import CompanyCreate, CompanyRead, LoginRequest
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
@@ -34,24 +33,14 @@ def register(payload: CompanyCreate, db: Session = Depends(get_db)):
     return company
 
 
-@router.post("/login", response_model=Token)
-def login(
-    form_data: OAuth2PasswordRequestForm = Depends(),
-    db: Session = Depends(get_db),
-):
+@router.post("/login", response_model=CompanyRead)
+def login(payload: LoginRequest, db: Session = Depends(get_db)):
     company = db.scalar(
-        select(Company).where(Company.username == form_data.username)
+        select(Company).where(Company.username == payload.username)
     )
-    if not company or not verify_password(company.password, form_data.password):
+    if not company or not verify_password(company.password, payload.password):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Incorrect username or password",
-            headers={"WWW-Authenticate": "Bearer"},
         )
-    access_token = create_access_token(company.id)
-    return Token(access_token=access_token, token_type="bearer")
-
-
-@router.get("/me", response_model=CompanyRead)
-def read_me(current_company: Company = Depends(get_current_company)):
-    return current_company
+    return company

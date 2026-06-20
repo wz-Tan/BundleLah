@@ -10,9 +10,6 @@ class CompanyBase(BaseModel):
     username: str
     ssm_number: str
     address: str
-    vehicle_type: Optional[str] = None
-    license_plate: Optional[str] = None
-    max_payload_kg: Optional[Decimal] = None
 
 
 class CompanyCreate(CompanyBase):
@@ -23,9 +20,6 @@ class CompanyUpdate(BaseModel):
     name: Optional[str] = None
     password: Optional[str] = None
     address: Optional[str] = None
-    vehicle_type: Optional[str] = None
-    license_plate: Optional[str] = None
-    max_payload_kg: Optional[Decimal] = None
 
 
 class CompanyRead(CompanyBase):

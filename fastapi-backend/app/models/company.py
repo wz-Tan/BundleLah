@@ -10,6 +10,7 @@ from ..db.database import Base
 if TYPE_CHECKING:
     from .cargo_request import CargoRequest
     from .trip_listing import TripListing
+    from .vehicle import Vehicle
     from .cost_split import CostSplit
 
 
@@ -26,13 +27,11 @@ class Company(Base):
         Numeric(12, 2), default=0
     )
 
-    # Vehicle / fleet info (simplified for hackathon — the company is the carrier)
-    vehicle_type: Mapped[Optional[str]] = mapped_column(String(100))
-    license_plate: Mapped[Optional[str]] = mapped_column(String(20), unique=True)
-    max_payload_kg: Mapped[Optional[Decimal]] = mapped_column(Numeric(10, 2))
-
     created_at: Mapped[Optional[datetime]] = mapped_column(server_default=func.now())
 
+    vehicles: Mapped[List["Vehicle"]] = relationship(
+        back_populates="company", cascade="all, delete-orphan"
+    )
     cargo_requests: Mapped[List["CargoRequest"]] = relationship(
         back_populates="company", cascade="all, delete-orphan"
     )

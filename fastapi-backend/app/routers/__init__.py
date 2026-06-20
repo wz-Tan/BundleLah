@@ -1,6 +1,7 @@
 from . import (
     auth,
     companies,
+    vehicles,
     cargo_requests,
     trip_listings,
     cargo_matches,
@@ -11,6 +12,7 @@ from . import (
 __all__ = [
     "auth",
     "companies",
+    "vehicles",
     "cargo_requests",
     "trip_listings",
     "cargo_matches",
