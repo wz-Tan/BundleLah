@@ -4,7 +4,5 @@ pydantic
 pydantic-settings
 sqlalchemy
 
-# Auth
-pyjwt
+# Password hashing
 argon2-cffi
-python-multipart

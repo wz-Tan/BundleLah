@@ -3,13 +3,13 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app.routers import (
     auth,
-    companies,
-    vehicles,
-    cargo_requests,
-    trip_listings,
-    cargo_matches,
-    cost_splits,
     carbon_logs,
+    cargo_matches,
+    cargo_requests,
+    companies,
+    cost_splits,
+    trip_listings,
+    vehicles,
 )
 
 app = FastAPI(title="BundleLah API")
@@ -36,6 +36,6 @@ app.include_router(cost_splits.router)
 app.include_router(carbon_logs.router)
 
 
-@app.get('/health')
+@app.get("/health")
 async def health():
-    return {'status': 'ok'}
+    return {"status": "ok"}
