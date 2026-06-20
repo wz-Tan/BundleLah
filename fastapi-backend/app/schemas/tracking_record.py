@@ -1,7 +1,13 @@
 from datetime import datetime
 from typing import Optional
 
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, field_validator
+
+
+def _adc_to_ppm(value) -> Optional[float]:
+    if value is None:
+        return None
+    return max(0.0, (float(value) - 2000) * 1000.0 / (4095 - 2000))
 
 
 class TrackingRecordBase(BaseModel):
@@ -14,7 +20,16 @@ class TrackingRecordBase(BaseModel):
     motion_detected: Optional[bool] = False
 
 
-class TrackingRecordCreate(TrackingRecordBase):
+class TrackingRecordItem(TrackingRecordBase):
+    """Used for individual records within a bulk payload — applies ADC conversion."""
+
+    @field_validator("ethylene_level", mode="before")
+    @classmethod
+    def parse_ethylene_adc(cls, value):
+        return _adc_to_ppm(value)
+
+
+class TrackingRecordCreate(TrackingRecordItem):
     device_id: int
     secret: str
 
@@ -30,4 +45,4 @@ class TrackingRecordRead(TrackingRecordBase):
 class TrackingRecordBulkCreate(BaseModel):
     device_id: int
     secret: str
-    records: list[TrackingRecordBase]
+    records: list[TrackingRecordItem]

@@ -1,3 +1,4 @@
+from datetime import datetime
 from typing import List
 
 from fastapi import APIRouter, Depends, HTTPException, status
@@ -39,7 +40,7 @@ def create_tracking_record(
     
     # then create
     record_data = payload.model_dump(exclude={"secret"})
-    tracking_record = TrackingRecord(**record_data)
+    tracking_record = TrackingRecord(**record_data, recorded_at=datetime.utcnow())
     db.add(tracking_record)
     db.commit()
     db.refresh(tracking_record)
@@ -55,9 +56,11 @@ def create_tracking_records_bulk(
     
     # can we propagate to the singular one? or just like this
     tracking_records = []
+    current_time = datetime.utcnow()
     for record_data in payload.records:
         tracking_record = TrackingRecord(
             device_id=payload.device_id,
+            recorded_at=current_time,
             **record_data.model_dump()
         )
         db.add(tracking_record)
@@ -91,7 +94,7 @@ def list_tracking_records(
     stmt = stmt.order_by(desc(TrackingRecord.recorded_at))
     stmt = stmt.offset(skip).limit(limit)
     
-    return db.scalars(stmt).all()
+    return db.scalars(stmt).all()[::-1]
 
 
 @router.get("/{record_id}", response_model=TrackingRecordRead)

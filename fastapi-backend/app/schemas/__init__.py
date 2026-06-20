@@ -26,7 +26,7 @@ from .cost_split import (
     CostSplitRead,
 )
 from .carbon_log import CarbonLogBase, CarbonLogCreate, CarbonLogRead
-from .device import DeviceBase, DeviceCreate, DeviceRead, DevicePublic, DeviceAlerts, AlertDetail
+from .device import DeviceBase, DeviceCreate, DeviceRead, DevicePublic
 from .tracking_record import (
     TrackingRecordBase,
     TrackingRecordCreate,
@@ -67,8 +67,6 @@ __all__ = [
     "DeviceCreate",
     "DeviceRead",
     "DevicePublic",
-    "DeviceAlerts",
-    "AlertDetail",
     "TrackingRecordBase",
     "TrackingRecordCreate",
     "TrackingRecordRead",

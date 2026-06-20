@@ -19,6 +19,8 @@ interface TrackingModalProps {
   onClose: () => void;
 }
 
+const gap = 700;
+
 export function TrackingModal({
   cargoMatchId,
   title,
@@ -435,7 +437,7 @@ export function TrackingModal({
                                       const maxTemp = Math.max(...temps, device.temperature_threshold || 0);
                                       const minTemp = Math.min(...temps);
                                       const range = maxTemp - minTemp || 1;
-                                      const x = (i / (trackingRecords.length - 1)) * 100;
+                                      const x = (i / (trackingRecords.length - 1)) * gap;
                                       const y = 100 - (((r.temperature || 0) - minTemp) / range) * 80;
                                       return `${x},${y}`;
                                     })
@@ -490,7 +492,7 @@ export function TrackingModal({
                                       const maxHum = Math.max(...humidities, device.humidity_threshold || 0);
                                       const minHum = Math.min(...humidities);
                                       const range = maxHum - minHum || 1;
-                                      const x = (i / (trackingRecords.length - 1)) * 100;
+                                      const x = (i / (trackingRecords.length - 1)) * gap;
                                       const y = 100 - (((r.humidity || 0) - minHum) / range) * 80;
                                       return `${x},${y}`;
                                     })
@@ -545,7 +547,7 @@ export function TrackingModal({
                                       const maxEth = Math.max(...ethylenes, device.ethylene_threshold || 0);
                                       const minEth = Math.min(...ethylenes);
                                       const range = maxEth - minEth || 1;
-                                      const x = (i / (trackingRecords.length - 1)) * 100;
+                                      const x = (i / (trackingRecords.length - 1)) * gap;
                                       const y = 100 - (((r.ethylene_level || 0) - minEth) / range) * 80;
                                       return `${x},${y}`;
                                     })
