@@ -23,7 +23,6 @@ interface CargoMapProps {
   markers?: CargoMarker[];
 }
 const GOOGLE_MAPS_API_KEY = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
-console.log(GOOGLE_MAPS_API_KEY);
 
 export function CargoMap({
   center = defaultCenter,
