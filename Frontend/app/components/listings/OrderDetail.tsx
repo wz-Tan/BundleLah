@@ -1,8 +1,10 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
-import type { GetCargoRequestItem } from "@/type";
+import type { GetCargoRequestItem, TripListing } from "@/type";
+import { tripListings } from "@/lib/api";
+import { getCurrentCompanyId } from "@/lib/session";
 import { formatTime } from "./listingUtils";
 
 type PoolStatus = "idle" | "loading" | "success" | "error";
@@ -14,23 +16,63 @@ export function OrderDetail({
 }: {
   order: GetCargoRequestItem;
   onClose: () => void;
-  onOfferPool?: (order: GetCargoRequestItem) => Promise<void>;
+  onOfferPool?: (
+    order: GetCargoRequestItem,
+    tripListingId: number
+  ) => Promise<void>;
 }) {
   const pickupStart = order.pickup.window_start
     ? formatTime(order.pickup.window_start)
     : "Flexible";
 
+  // The current company's own open trips, to pick which one carries this cargo.
+  const [trips, setTrips] = useState<TripListing[]>([]);
+  const [selectedTripId, setSelectedTripId] = useState<number | null>(null);
+  const [tripsLoading, setTripsLoading] = useState(true);
+
   const [poolStatus, setPoolStatus] = useState<PoolStatus>("idle");
   const [poolError, setPoolError] = useState<string | null>(null);
 
+  useEffect(() => {
+    const companyId = getCurrentCompanyId();
+    if (companyId === null) {
+      setTripsLoading(false);
+      return;
+    }
+
+    let cancelled = false;
+    (async () => {
+      try {
+        const listings = await tripListings.list({
+          company_id: companyId,
+          status_filter: "open",
+        });
+        if (!cancelled) setTrips(listings);
+      } catch {
+        // Leave the list empty; the button stays disabled.
+      } finally {
+        if (!cancelled) setTripsLoading(false);
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
   async function handleOffer() {
-    if (!onOfferPool || poolStatus === "loading" || poolStatus === "success") {
+    if (
+      !onOfferPool ||
+      selectedTripId === null ||
+      poolStatus === "loading" ||
+      poolStatus === "success"
+    ) {
       return;
     }
     setPoolStatus("loading");
     setPoolError(null);
     try {
-      await onOfferPool(order);
+      await onOfferPool(order, selectedTripId);
       setPoolStatus("success");
     } catch (err) {
       setPoolError(
@@ -126,6 +168,37 @@ export function OrderDetail({
               RM {order.suggested_budget_rm.toFixed(2)}
             </p>
           </div>
+
+          <div>
+            <p className="text-[10px] uppercase tracking-widest text-zinc-400 font-semibold mb-2">
+              Assign one of your trips
+            </p>
+            {tripsLoading ? (
+              <p className="text-sm text-zinc-400">Loading your trips...</p>
+            ) : trips.length === 0 ? (
+              <p className="text-sm text-zinc-500">
+                You have no open trips. List a trip first to offer a pool.
+              </p>
+            ) : (
+              <select
+                value={selectedTripId ?? ""}
+                onChange={(e) =>
+                  setSelectedTripId(
+                    e.target.value === "" ? null : Number(e.target.value)
+                  )
+                }
+                className="w-full h-11 rounded-xl border border-solid border-black/[.08] bg-white px-3 text-sm text-zinc-800 outline-none focus:border-amber-400 transition-colors"
+              >
+                <option value="">Select a trip...</option>
+                {trips.map((trip) => (
+                  <option key={trip.id} value={trip.id}>
+                    #TRIP-{String(trip.id).padStart(4, "0")} ·{" "}
+                    {trip.origin_region} → {trip.destination_region}
+                  </option>
+                ))}
+              </select>
+            )}
+          </div>
         </div>
 
         <div className="px-5 py-4 border-t border-black/[.06]">
@@ -134,7 +207,11 @@ export function OrderDetail({
           )}
           <button
             onClick={handleOffer}
-            disabled={poolStatus === "loading" || poolStatus === "success"}
+            disabled={
+              selectedTripId === null ||
+              poolStatus === "loading" ||
+              poolStatus === "success"
+            }
             className="w-full h-11 rounded-full bg-zinc-900 text-white text-sm font-semibold hover:bg-zinc-700 transition-colors disabled:cursor-not-allowed disabled:opacity-60"
           >
             {offerLabel}

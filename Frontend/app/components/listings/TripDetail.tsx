@@ -1,7 +1,9 @@
 "use client";
 
-import { GetTripListingItem } from "@/type";
-import { useState } from "react";
+import { GetTripListingItem, CargoRequest } from "@/type";
+import { useEffect, useState } from "react";
+import { cargoRequests } from "@/lib/api";
+import { getCurrentCompanyId } from "@/lib/session";
 import { TripStatusBadge } from "./StatusBadge";
 
 type PoolStatus = "idle" | "loading" | "success" | "error";
@@ -23,7 +25,10 @@ export function TripDetail({
 }: {
     trip: GetTripListingItem;
     onClose: () => void;
-    onRequestPool?: (trip: GetTripListingItem) => Promise<void>;
+    onRequestPool?: (
+        trip: GetTripListingItem,
+        cargoRequestId: number
+    ) => Promise<void>;
 }) {
     const details = [
         ["Available weight", `${trip.available_capacity.weight_kg} kg`],
@@ -31,17 +36,56 @@ export function TripDetail({
         ["Departure", formatTripDate(trip.departure_window_start)],
     ];
 
+    // The current company's own open cargo requests to pool onto this trip.
+    const [requests, setRequests] = useState<CargoRequest[]>([]);
+    const [selectedRequestId, setSelectedRequestId] = useState<number | null>(
+        null
+    );
+    const [requestsLoading, setRequestsLoading] = useState(true);
+
     const [poolStatus, setPoolStatus] = useState<PoolStatus>("idle");
     const [poolError, setPoolError] = useState<string | null>(null);
 
+    useEffect(() => {
+        const companyId = getCurrentCompanyId();
+        if (companyId === null) {
+            setRequestsLoading(false);
+            return;
+        }
+
+        let cancelled = false;
+        (async () => {
+            try {
+                const list = await cargoRequests.list({
+                    company_id: companyId,
+                    status_filter: "open",
+                });
+                if (!cancelled) setRequests(list);
+            } catch {
+                // Leave the list empty; the button stays disabled.
+            } finally {
+                if (!cancelled) setRequestsLoading(false);
+            }
+        })();
+
+        return () => {
+            cancelled = true;
+        };
+    }, []);
+
     async function handleRequest() {
-        if (!onRequestPool || poolStatus === "loading" || poolStatus === "success") {
+        if (
+            !onRequestPool ||
+            selectedRequestId === null ||
+            poolStatus === "loading" ||
+            poolStatus === "success"
+        ) {
             return;
         }
         setPoolStatus("loading");
         setPoolError(null);
         try {
-            await onRequestPool(trip);
+            await onRequestPool(trip, selectedRequestId);
             setPoolStatus("success");
         } catch (err) {
             setPoolError(
@@ -132,6 +176,42 @@ export function TripDetail({
                             ))}
                         </div>
                     </div>
+
+                    <div>
+                        <p className="mb-2 text-[10px] font-semibold uppercase tracking-widest text-zinc-400">
+                            Assign one of your pooling requests
+                        </p>
+                        {requestsLoading ? (
+                            <p className="text-sm text-zinc-400">
+                                Loading your requests...
+                            </p>
+                        ) : requests.length === 0 ? (
+                            <p className="text-sm text-zinc-500">
+                                You have no open cargo requests. Create one first to
+                                request a pool.
+                            </p>
+                        ) : (
+                            <select
+                                value={selectedRequestId ?? ""}
+                                onChange={(e) =>
+                                    setSelectedRequestId(
+                                        e.target.value === ""
+                                            ? null
+                                            : Number(e.target.value)
+                                    )
+                                }
+                                className="w-full h-11 rounded-xl border border-solid border-black/[.08] bg-white px-3 text-sm text-zinc-800 outline-none focus:border-amber-400 transition-colors"
+                            >
+                                <option value="">Select a request...</option>
+                                {requests.map((req) => (
+                                    <option key={req.id} value={req.id}>
+                                        #REQ-{String(req.id).padStart(4, "0")} ·{" "}
+                                        {req.pickup_address} → {req.dropoff_address}
+                                    </option>
+                                ))}
+                            </select>
+                        )}
+                    </div>
                 </div>
 
                 <div className="border-t border-black/[.06] px-5 py-4">
@@ -140,7 +220,11 @@ export function TripDetail({
                     )}
                     <button
                         onClick={handleRequest}
-                        disabled={poolStatus === "loading" || poolStatus === "success"}
+                        disabled={
+                            selectedRequestId === null ||
+                            poolStatus === "loading" ||
+                            poolStatus === "success"
+                        }
                         className="h-11 w-full rounded-full bg-zinc-900 text-sm font-semibold text-white transition-colors hover:bg-zinc-700 disabled:cursor-not-allowed disabled:opacity-60"
                     >
                         {requestLabel}
