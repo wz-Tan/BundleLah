@@ -22,6 +22,11 @@ class CargoRequestBase(BaseModel):
     pickup_window_start: Optional[datetime] = None
     pickup_window_end: Optional[datetime] = None
     priority_flag: Optional[bool] = False
+    # Monitoring requirements (None threshold = sensor not required).
+    temp_threshold_c: Optional[Decimal] = None
+    humidity_threshold_pct: Optional[Decimal] = None
+    ethylene_threshold_ppm: Optional[Decimal] = None
+    motion_required: Optional[bool] = False
 
 
 class CargoRequestCreate(CargoRequestBase):
@@ -41,6 +46,10 @@ class CargoRequestUpdate(BaseModel):
     pickup_window_end: Optional[datetime] = None
     status: Optional[CargoRequestStatus] = None
     priority_flag: Optional[bool] = None
+    temp_threshold_c: Optional[Decimal] = None
+    humidity_threshold_pct: Optional[Decimal] = None
+    ethylene_threshold_ppm: Optional[Decimal] = None
+    motion_required: Optional[bool] = None
 
 
 class CargoRequestRead(CargoRequestBase):

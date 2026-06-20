@@ -210,7 +210,7 @@ export default function AvailableTripsPage() {
 
         <button
           onClick={() => setShowCreate(true)}
-          className="mb-6 self-start h-10 px-4 rounded-full bg-emerald-600 text-white text-sm font-semibold hover:bg-emerald-500 transition-colors"
+          className="mb-6 self-start h-10 px-4 rounded-full bg-orange-500 text-white text-sm font-semibold hover:bg-emerald-500 transition-colors"
         >
           + List a trip
         </button>

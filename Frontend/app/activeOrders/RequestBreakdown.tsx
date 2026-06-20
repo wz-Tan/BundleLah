@@ -15,12 +15,16 @@ interface RequestBreakdownProps {
     selectedTrip: TripListingDisplay;
     selectedPoolRequest: OrderRequest;
     onClose: () => void;
+    onAccept?: () => void | Promise<void>;
+    onDecline?: () => void | Promise<void>;
 }
 
 export default function RequestBreakdown({
     selectedTrip,
     selectedPoolRequest,
     onClose,
+    onAccept,
+    onDecline,
 }: RequestBreakdownProps) {
     const [device, setDevice] = useState<Device | null>(null);
     const [trackingRecords, setTrackingRecords] = useState<TrackingRecord[]>([]);
@@ -28,6 +32,7 @@ export default function RequestBreakdown({
     const [isCreating, setIsCreating] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [showSecret, setShowSecret] = useState(false);
+    const [responding, setResponding] = useState(false);
     const [deviceForm, setDeviceForm] = useState({
         secret: "",
         temperature_threshold: "",
@@ -111,6 +116,21 @@ export default function RequestBreakdown({
     useEffect(() => {
         fetchDevices();
     }, []);
+
+    const handleRespond = async (action: "accept" | "decline") => {
+        if (responding) return;
+        const handler = action === "accept" ? onAccept : onDecline;
+        if (!handler) {
+            onClose();
+            return;
+        }
+        setResponding(true);
+        try {
+            await handler();
+        } finally {
+            setResponding(false);
+        }
+    };
 
     // Fetch tracking records when device changes
     useEffect(() => {
@@ -220,16 +240,18 @@ export default function RequestBreakdown({
 
                         <div className="mt-8 flex gap-3">
                             <button
-                                onClick={onClose}
-                                className="flex-1 text-sm font-medium border border-gray-200 text-gray-500 hover:bg-gray-50 py-2.5 rounded-xl transition-colors cursor-pointer"
+                                onClick={() => handleRespond("decline")}
+                                disabled={responding}
+                                className="flex-1 text-sm font-medium border border-gray-200 text-gray-500 hover:bg-gray-50 py-2.5 rounded-xl transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
                             >
                                 Decline
                             </button>
                             <button
-                                onClick={onClose}
-                                className="flex-1 text-sm font-medium bg-orange-500 text-white hover:bg-orange-600 py-2.5 rounded-xl transition-colors cursor-pointer"
+                                onClick={() => handleRespond("accept")}
+                                disabled={responding}
+                                className="flex-1 text-sm font-medium bg-orange-500 text-white hover:bg-orange-600 py-2.5 rounded-xl transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
                             >
-                                Accept Pool
+                                {responding ? "Working..." : "Accept Pool"}
                             </button>
                         </div>
                     </div>
