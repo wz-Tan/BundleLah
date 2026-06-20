@@ -344,7 +344,6 @@ export function toTripListingItem(
       volume_m3: tl.available_volume_m3 ?? 0,
     },
     match_status: tl.status,
-    estimated_price_per_kg_rm: ESTIMATED_RM_PER_KG,
   };
 }
 
