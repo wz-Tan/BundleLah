@@ -96,17 +96,6 @@ export function TripDetail({
                             ))}
                         </div>
                     </div>
-
-                    <div className="flex items-center justify-between rounded-xl border border-solid border-emerald-200 bg-emerald-50 px-4 py-3">
-                        <div>
-                            <p className="mb-0.5 text-[10px] font-bold uppercase tracking-widest text-emerald-700">
-                                Estimated Price
-                            </p>
-                        </div>
-                        <span className="text-xs font-bold uppercase tracking-widest text-emerald-700">
-                            per kg
-                        </span>
-                    </div>
                 </div>
 
                 <div className="border-t border-black/[.06] px-5 py-4">
