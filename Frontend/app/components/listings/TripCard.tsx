@@ -80,9 +80,6 @@ export function TripCard({
             </span>
           </span>
         </div>
-        <span className="text-base font-bold text-zinc-900 tabular-nums dark:text-zinc-50">
-          RM {trip.estimated_price_per_kg_rm.toFixed(2)}/kg
-        </span>
       </div>
     </button>
   );
