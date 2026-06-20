@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
+import { clearCompanySession } from "@/lib/session";
 
 const NAV_LINKS = [
   { href: "/dashboard", label: "Dashboard" },
@@ -14,7 +15,7 @@ export default function Header() {
   const router = useRouter();
 
   const handleSignOut = async () => {
-    // await supabase.auth.signOut()
+    clearCompanySession();
     router.push("/login");
   };
 
