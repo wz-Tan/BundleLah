@@ -15,7 +15,7 @@ import {
   buildCompanyNameMap,
   toCargoRequestItem,
 } from "@/lib/api";
-import { getCurrentCompanyId, getStoredCompany } from "@/lib/session";
+import { getStoredCompany } from "@/lib/session";
 import { useEffect, useState } from "react";
 
 const PRIORITY_FILTERS = [
@@ -32,6 +32,8 @@ export default function CargoRequestsPage() {
   const [selected, setSelected] = useState<GetCargoRequestItem | null>(null);
   const [showCreate, setShowCreate] = useState(false);
   const [requests, setRequests] = useState<GetCargoRequestItem[]>([]);
+  // Ids of postings created by the current company (own listings, cancellable).
+  const [myIds, setMyIds] = useState<Set<number>>(new Set());
   // order id -> match id for offers this company has already sent.
   const [requestedMatches, setRequestedMatches] = useState<Map<number, number>>(
     new Map()
@@ -43,7 +45,7 @@ export default function CargoRequestsPage() {
     const company = getStoredCompany();
     const companyId = company?.id ?? 1;
     try {
-      await cargoRequests.create({
+      const created = await cargoRequests.create({
         company_id: companyId,
         pickup_address: req.pickup_address,
         pickup_lat: req.pickup_lat,
@@ -57,12 +59,34 @@ export default function CargoRequestsPage() {
         pickup_window_end: req.pickup_window_end,
         priority_flag: req.priority_flag,
       });
-      // Own requests are hidden from this list, so nothing is added here.
+      const item = toCargoRequestItem(
+        created,
+        company?.name ?? `Company #${companyId}`
+      );
+      if (req.budget_rm && req.budget_rm > 0) item.suggested_budget_rm = req.budget_rm;
+      setRequests((prev) => [item, ...prev]);
+      setMyIds((prev) => new Set(prev).add(created.id));
       setShowCreate(false);
     } catch (err) {
       setSubmitError(
         err instanceof Error ? err.message : "Failed to save the request."
       );
+    }
+  }
+
+  // Remove one of the current company's own cargo requests.
+  async function handleCancel(id: number) {
+    const prevRequests = requests;
+    setRequests((prev) => prev.filter((r) => r.id !== id));
+    setMyIds((prev) => {
+      const next = new Set(prev);
+      next.delete(id);
+      return next;
+    });
+    try {
+      await cargoRequests.remove(id);
+    } catch {
+      setRequests(prevRequests);
     }
   }
 
@@ -107,17 +131,28 @@ export default function CargoRequestsPage() {
         ]);
         if (cancelled) return;
         const nameMap = buildCompanyNameMap(comps);
-        const companyId = getCurrentCompanyId();
-        // Hide the company's own requests so it can't offer a pool to itself.
+        const company = getStoredCompany();
+        const companyId = company?.id ?? null;
+        // Ensure the current company's own name resolves even if it isn't
+        // part of the fetched companies list.
+        if (company) nameMap.set(company.id, company.name);
+        // Mark the company's own requests so they can be styled and cancelled.
+        if (companyId != null) {
+          setMyIds((prev) => {
+            const next = new Set(prev);
+            reqs.forEach((r) => {
+              if (r.company_id === companyId) next.add(r.id);
+            });
+            return next;
+          });
+        }
         setRequests(
-          reqs
-            .filter((r) => companyId == null || r.company_id !== companyId)
-            .map((r) =>
-              toCargoRequestItem(
-                r,
-                nameMap.get(r.company_id) ?? `Company #${r.company_id}`
-              )
+          reqs.map((r) =>
+            toCargoRequestItem(
+              r,
+              nameMap.get(r.company_id) ?? `Company #${r.company_id}`
             )
+          )
         );
 
         // Restore any pool offers this company already sent (via its trips)
@@ -262,7 +297,9 @@ export default function CargoRequestsPage() {
                 key={order.id}
                 order={order}
                 onSelect={setSelected}
+                isOwn={myIds.has(order.id)}
                 requested={requestedMatches.has(order.id)}
+                onCancel={myIds.has(order.id) ? handleCancel : undefined}
               />
             ))}
           </div>
