@@ -1,18 +1,52 @@
 "use client";
 
 import type { GetCargoRequestItem } from "@/type";
+import { useState } from "react";
 import { formatTime } from "./listingUtils";
+
+type PoolStatus = "idle" | "loading" | "success" | "error";
 
 export function OrderDetail({
   order,
   onClose,
+  onOfferPool,
 }: {
   order: GetCargoRequestItem;
   onClose: () => void;
+  onOfferPool?: (order: GetCargoRequestItem) => Promise<void>;
 }) {
   const pickupStart = order.pickup.window_start
     ? formatTime(order.pickup.window_start)
     : "Flexible";
+
+  const [poolStatus, setPoolStatus] = useState<PoolStatus>("idle");
+  const [poolError, setPoolError] = useState<string | null>(null);
+
+  async function handleOffer() {
+    if (!onOfferPool || poolStatus === "loading" || poolStatus === "success") {
+      return;
+    }
+    setPoolStatus("loading");
+    setPoolError(null);
+    try {
+      await onOfferPool(order);
+      setPoolStatus("success");
+    } catch (err) {
+      setPoolError(
+        err instanceof Error ? err.message : "Failed to send pooling offer."
+      );
+      setPoolStatus("error");
+    }
+  }
+
+  const offerLabel =
+    poolStatus === "loading"
+      ? "Sending offer..."
+      : poolStatus === "success"
+      ? "Offer sent ✓"
+      : poolStatus === "error"
+      ? "Retry offer"
+      : "Offer To Pool This Cargo";
 
   return (
     <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center">
@@ -94,8 +128,15 @@ export function OrderDetail({
         </div>
 
         <div className="px-5 py-4 border-t border-black/[.06]">
-          <button className="w-full h-11 rounded-full bg-zinc-900 text-white text-sm font-semibold hover:bg-zinc-700 transition-colors">
-            Offer To Pool This Cargo
+          {poolError && (
+            <p className="mb-2 text-xs text-red-600">{poolError}</p>
+          )}
+          <button
+            onClick={handleOffer}
+            disabled={poolStatus === "loading" || poolStatus === "success"}
+            className="w-full h-11 rounded-full bg-zinc-900 text-white text-sm font-semibold hover:bg-zinc-700 transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
+          >
+            {offerLabel}
           </button>
         </div>
       </div>

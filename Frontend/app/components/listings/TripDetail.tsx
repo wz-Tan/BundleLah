@@ -1,5 +1,10 @@
+"use client";
+
 import { GetTripListingItem } from "@/type";
+import { useState } from "react";
 import { TripStatusBadge } from "./StatusBadge";
+
+type PoolStatus = "idle" | "loading" | "success" | "error";
 
 function formatTripDate(iso: string) {
     return new Date(iso).toLocaleString("en-MY", {
@@ -14,15 +19,46 @@ function formatTripDate(iso: string) {
 export function TripDetail({
     trip,
     onClose,
+    onRequestPool,
 }: {
     trip: GetTripListingItem;
     onClose: () => void;
+    onRequestPool?: (trip: GetTripListingItem) => Promise<void>;
 }) {
     const details = [
         ["Available weight", `${trip.available_capacity.weight_kg} kg`],
         ["Available volume", `${trip.available_capacity.volume_m3} m³`],
         ["Departure", formatTripDate(trip.departure_window_start)],
     ];
+
+    const [poolStatus, setPoolStatus] = useState<PoolStatus>("idle");
+    const [poolError, setPoolError] = useState<string | null>(null);
+
+    async function handleRequest() {
+        if (!onRequestPool || poolStatus === "loading" || poolStatus === "success") {
+            return;
+        }
+        setPoolStatus("loading");
+        setPoolError(null);
+        try {
+            await onRequestPool(trip);
+            setPoolStatus("success");
+        } catch (err) {
+            setPoolError(
+                err instanceof Error ? err.message : "Failed to send pooling request."
+            );
+            setPoolStatus("error");
+        }
+    }
+
+    const requestLabel =
+        poolStatus === "loading"
+            ? "Sending request..."
+            : poolStatus === "success"
+            ? "Request sent ✓"
+            : poolStatus === "error"
+            ? "Retry request"
+            : "Request To Pool Cargo";
 
     return (
         <div className="fixed inset-0 z-50 flex items-end justify-center sm:items-center">
@@ -99,8 +135,15 @@ export function TripDetail({
                 </div>
 
                 <div className="border-t border-black/[.06] px-5 py-4">
-                    <button className="h-11 w-full rounded-full bg-zinc-900 text-sm font-semibold text-white transition-colors hover:bg-zinc-700">
-                        Request To Pool Cargo
+                    {poolError && (
+                        <p className="mb-2 text-xs text-red-600">{poolError}</p>
+                    )}
+                    <button
+                        onClick={handleRequest}
+                        disabled={poolStatus === "loading" || poolStatus === "success"}
+                        className="h-11 w-full rounded-full bg-zinc-900 text-sm font-semibold text-white transition-colors hover:bg-zinc-700 disabled:cursor-not-allowed disabled:opacity-60"
+                    >
+                        {requestLabel}
                     </button>
                 </div>
             </div>

@@ -9,6 +9,8 @@ import {
 } from "@/app/components/listings";
 import {
   cargoRequests,
+  tripListings,
+  cargoMatches,
   companies,
   buildCompanyNameMap,
   toCargoRequestItem,
@@ -79,6 +81,26 @@ export default function CargoRequestsPage() {
       // Roll back if the backend rejected the deletion.
       setRequests(prevRequests);
     }
+  }
+
+  // Offer one of the current company's open trips to carry this cargo request.
+  async function handleOfferPool(order: GetCargoRequestItem) {
+    const companyId = getCurrentCompanyId() ?? 1;
+    const myTrips = await tripListings.list({
+      company_id: companyId,
+      status_filter: "open",
+    });
+    if (myTrips.length === 0) {
+      throw new Error(
+        "List an available trip first before offering to pool this cargo."
+      );
+    }
+    await cargoMatches.create({
+      trip_listing_id: myTrips[0].id,
+      cargo_request_id: order.id,
+      initiated_by: "carrier",
+      agreed_price_rm: order.suggested_budget_rm,
+    });
   }
 
   const [loading, setLoading] = useState(true);
@@ -261,7 +283,11 @@ export default function CargoRequestsPage() {
       </main>
 
       {selected && (
-        <OrderDetail order={selected} onClose={() => setSelected(null)} />
+        <OrderDetail
+          order={selected}
+          onClose={() => setSelected(null)}
+          onOfferPool={handleOfferPool}
+        />
       )}
 
       {showCreate && (
