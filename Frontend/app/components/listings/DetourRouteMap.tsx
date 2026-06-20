@@ -94,6 +94,14 @@ export function DetourRouteMap({
     [waypoints]
   );
 
+  // Identifies the current route. Used as the DirectionsRenderer key so a new
+  // route remounts a fresh renderer instead of stacking markers from the
+  // previous one (the library doesn't clear old markers on prop change).
+  const routeKey = useMemo(
+    () => JSON.stringify([originPlace, destinationPlace, waypointPlaces]),
+    [originPlace, destinationPlace, waypointPlaces]
+  );
+
   useEffect(() => {
     if (!isLoaded || typeof google === "undefined") return;
     if (!originPlace || !destinationPlace) {
@@ -181,6 +189,7 @@ export function DetourRouteMap({
         >
           {directions && (
             <DirectionsRenderer
+              key={routeKey}
               directions={directions}
               options={{
                 polylineOptions: {
