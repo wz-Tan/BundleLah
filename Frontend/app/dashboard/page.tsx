@@ -1,7 +1,80 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
-import { CargoMap } from "../components/CargoMap";
+import { useEffect, useRef, useState } from "react";
+import { CargoMap, type CargoMarker } from "../components/CargoMap";
+
+const SAMPLE_MARKERS: CargoMarker[] = [
+  {
+    id: "m-001",
+    orderId: "ORD-1001",
+    lat: 1.3521,
+    lng: 103.8198,
+    label: "Order #ORD-1001 — Pickup, Jurong East",
+  },
+  {
+    id: "m-002",
+    orderId: "ORD-1002",
+    lat: 1.3036,
+    lng: 103.8318,
+    label: "Order #ORD-1002 — Dropoff, Tanjong Pagar",
+  },
+  {
+    id: "m-003",
+    orderId: "ORD-1003",
+    lat: 1.3496,
+    lng: 103.9568,
+    label: "Order #ORD-1003 — Pickup, Tampines",
+  },
+  {
+    id: "m-004",
+    orderId: "ORD-1004",
+    lat: 1.4382,
+    lng: 103.7891,
+    label: "Order #ORD-1004 — Dropoff, Woodlands",
+  },
+  {
+    id: "m-005",
+    orderId: "ORD-1005",
+    lat: 1.3329,
+    lng: 103.7436,
+    label: "Order #ORD-1005 — Pickup, Jurong West",
+  },
+  {
+    id: "m-006",
+    orderId: "ORD-1006",
+    lat: 1.3644,
+    lng: 103.9915,
+    label: "Order #ORD-1006 — Dropoff, Changi",
+  },
+  {
+    id: "m-007",
+    orderId: "ORD-1007",
+    lat: 1.2966,
+    lng: 103.852,
+    label: "Order #ORD-1007 — In Transit, Marina Bay",
+  },
+  {
+    id: "m-008",
+    orderId: "ORD-1008",
+    lat: 1.3151,
+    lng: 103.7644,
+    label: "Order #ORD-1008 — Pickup, Clementi",
+  },
+  {
+    id: "m-009",
+    orderId: "ORD-1009",
+    lat: 1.3868,
+    lng: 103.7479,
+    label: "Order #ORD-1009 — Dropoff, Bukit Panjang",
+  },
+  {
+    id: "m-010",
+    orderId: "ORD-1010",
+    lat: 1.3691,
+    lng: 103.8454,
+    label: "Order #ORD-1010 — Pickup, Bishan",
+  },
+];
 
 const PANELS = [
   {
@@ -44,11 +117,25 @@ const PANELS = [
 
 // Mock notifications data
 const NOTIFICATIONS = [
-  { id: 1, message: "Cargo 'Office stationery' has entered transit.", time: "10m ago" },
-  { id: 2, message: "Route optimization saved you an additional RM 12!", time: "1h ago" },
-  { id: 3, message: "New pool match found for 'Cleaning supplies'.", time: "3h ago" },
+  {
+    id: 1,
+    message:
+      "Order #ORD-1001 has hit 50°C — exceeds safe threshold for temperature-sensitive cargo.",
+    time: "10m ago",
+  },
+  {
+    id: 2,
+    message:
+      "Order #ORD-1004 — irregular motion detected. Parcel may have been opened in transit.",
+    time: "1h ago",
+  },
+  {
+    id: 3,
+    message:
+      "Order #ORD-1005 — ethylene gas levels rising. Fruit cargo may be over-ripening.",
+    time: "3h ago",
+  },
 ];
-
 export default function DashboardPage() {
   const [active, setActive] = useState<string | null>(null);
   const [showNotifications, setShowNotifications] = useState(false);
@@ -58,7 +145,10 @@ export default function DashboardPage() {
   // Close the notification popup if clicked outside
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
-      if (popoverRef.current && !popoverRef.current.contains(event.target as Node)) {
+      if (
+        popoverRef.current &&
+        !popoverRef.current.contains(event.target as Node)
+      ) {
         setShowNotifications(false);
       }
     }
@@ -79,11 +169,7 @@ export default function DashboardPage() {
           <div className="flex-1 min-h-196 rounded-xl border border-gray-200 overflow-hidden">
             <CargoMap
               center={{ lat: 1.3521, lng: 103.8198 }}
-              markers={[
-                { lat: 1.3521, lng: 103.8198, label: "Origin" },
-                { lat: 22.3193, lng: 114.1694, label: "Current position" },
-                { lat: 35.6762, lng: 139.6503, label: "Destination" },
-              ]}
+              markers={SAMPLE_MARKERS}
             />
           </div>
         </div>
@@ -155,7 +241,7 @@ export default function DashboardPage() {
             <div className="p-4 border-b border-gray-100 flex justify-between items-center bg-gray-50">
               <h4 className="font-semibold text-sm text-gray-800">Alerts</h4>
               {hasNotifications && (
-                <button 
+                <button
                   onClick={() => setNotifications([])}
                   className="text-xs text-orange-500 hover:text-orange-600 font-medium"
                 >
@@ -166,9 +252,16 @@ export default function DashboardPage() {
             <div className="max-h-64 overflow-y-auto divide-y divide-gray-50">
               {hasNotifications ? (
                 notifications.map((notif) => (
-                  <div key={notif.id} className="p-4 hover:bg-gray-50 transition-colors">
-                    <p className="text-sm text-gray-700 leading-snug">{notif.message}</p>
-                    <span className="text-xs text-gray-400 block mt-1">{notif.time}</span>
+                  <div
+                    key={notif.id}
+                    className="p-4 hover:bg-gray-50 transition-colors"
+                  >
+                    <p className="text-sm text-gray-700 leading-snug">
+                      {notif.message}
+                    </p>
+                    <span className="text-xs text-gray-400 block mt-1">
+                      {notif.time}
+                    </span>
                   </div>
                 ))
               ) : (
