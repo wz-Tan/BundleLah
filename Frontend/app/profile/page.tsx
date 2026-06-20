@@ -1,24 +1,28 @@
 "use client";
 
-import { useState } from "react";
-
-const PROFILE = {
-  id: "USR-2024-00187",
-  companyName: "Tigerlily Logistics Sdn Bhd",
-  serialNumber: "SSM-202401234567",
-  address: "12-3, Jalan Sungai Besi, 41200 Klang, Selangor, Malaysia",
-  walletBalance: "RM 1,250.00",
-  createdAt: "14 March 2024",
-  verified: true,
-};
-
-interface Vehicle {
-  id: string;
-  type: string;
-  plateNumber: string;
-}
+import { useEffect, useState } from "react";
+import type { Company, Vehicle } from "@/type";
+import { companies, vehicles as vehiclesApi } from "@/lib/api";
+import { getCurrentCompanyId } from "@/lib/session";
 
 const VEHICLE_TYPES = ["Car", "Van", "Lorry", "Motorcycle", "Pickup Truck"];
+
+function formatRm(value: number | null | undefined) {
+  const n = typeof value === "number" ? value : 0;
+  return `RM ${n.toLocaleString("en-MY", {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  })}`;
+}
+
+function formatDate(iso: string | null | undefined) {
+  if (!iso) return "—";
+  return new Date(iso).toLocaleDateString("en-MY", {
+    day: "2-digit",
+    month: "long",
+    year: "numeric",
+  });
+}
 
 function CopyableRow({
   label,
@@ -141,13 +145,94 @@ function AddVehicleModal({
 
 export default function ProfilePage() {
   const [showAddVehicle, setShowAddVehicle] = useState(false);
-  const [vehicles, setVehicles] = useState<Vehicle[]>([
-    { id: "1", type: "Van", plateNumber: "WXY 1234" },
-  ]);
+  const [company, setCompany] = useState<Company | null>(null);
+  const [vehicleList, setVehicleList] = useState<Vehicle[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  const handleAddVehicle = (vehicle: { type: string; plateNumber: string }) => {
-    setVehicles((prev) => [...prev, { id: crypto.randomUUID(), ...vehicle }]);
-  };
+  async function loadProfile() {
+    setLoading(true);
+    setError(null);
+    try {
+      // Prefer the logged-in company; fall back to the first company on record.
+      let companyId = getCurrentCompanyId();
+      if (companyId == null) {
+        const list = await companies.list({ limit: 1 });
+        if (list.length === 0) {
+          setCompany(null);
+          setVehicleList([]);
+          return;
+        }
+        companyId = list[0].id;
+      }
+
+      const [comp, vehs] = await Promise.all([
+        companies.get(companyId),
+        vehiclesApi.list({ company_id: companyId }),
+      ]);
+      setCompany(comp);
+      setVehicleList(vehs);
+    } catch (err) {
+      setError(
+        err instanceof Error ? err.message : "Failed to load your profile"
+      );
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  useEffect(() => {
+    loadProfile();
+  }, []);
+
+  async function handleAddVehicle(vehicle: {
+    type: string;
+    plateNumber: string;
+  }) {
+    if (!company) return;
+    try {
+      const created = await vehiclesApi.create({
+        company_id: company.id,
+        vehicle_type: vehicle.type,
+        license_plate: vehicle.plateNumber,
+      });
+      setVehicleList((prev) => [...prev, created]);
+    } catch (err) {
+      setError(
+        err instanceof Error ? err.message : "Failed to add vehicle"
+      );
+    }
+  }
+
+  if (loading) {
+    return (
+      <main className="mx-12 my-8">
+        <p className="text-sm text-gray-400">Loading profile...</p>
+      </main>
+    );
+  }
+
+  if (error) {
+    return (
+      <main className="mx-12 my-8">
+        <p className="text-base font-semibold text-red-500">
+          Couldn&apos;t load profile
+        </p>
+        <p className="text-sm text-gray-400 mt-1">{error}</p>
+      </main>
+    );
+  }
+
+  if (!company) {
+    return (
+      <main className="mx-12 my-8">
+        <p className="text-base font-semibold text-gray-700">No company found</p>
+        <p className="text-sm text-gray-400 mt-1">
+          Register a company to get started.
+        </p>
+      </main>
+    );
+  }
 
   return (
     <main className="mx-12 my-8 relative min-h-screen">
@@ -157,38 +242,34 @@ export default function ProfilePage() {
           <h2 className="text-xl font-semibold">Profile</h2>
           <div className="rounded-xl border border-gray-200 bg-white p-6 flex flex-col items-center text-center gap-3">
             <div className="w-20 h-20 rounded-full bg-orange-50 text-orange-500 flex items-center justify-center text-2xl font-semibold">
-              {PROFILE.companyName.charAt(0)}
+              {company.name.charAt(0)}
             </div>
             <div>
-              <p className="font-semibold text-gray-900">
-                {PROFILE.companyName}
+              <p className="font-semibold text-gray-900">{company.name}</p>
+              <p className="text-xs text-gray-400 mt-0.5">
+                @{company.username}
               </p>
-              <p className="text-xs text-gray-400 mt-0.5">{PROFILE.id}</p>
             </div>
-            {PROFILE.verified ? (
-              <span className="text-xs font-medium text-green-600 bg-green-50 px-3 py-1 rounded-full">
-                Verified
-              </span>
-            ) : (
-              <span className="text-xs font-medium text-yellow-600 bg-yellow-50 px-3 py-1 rounded-full">
-                Pending Verification
-              </span>
-            )}
+            <span className="text-xs font-medium text-green-600 bg-green-50 px-3 py-1 rounded-full">
+              Active
+            </span>
           </div>
 
           {/* Vehicles */}
           <h2 className="text-xl font-semibold">Vehicles</h2>
           <div className="rounded-xl border border-gray-200 bg-white px-6 py-2">
-            {vehicles.length > 0 ? (
+            {vehicleList.length > 0 ? (
               <div className="divide-y divide-gray-100">
-                {vehicles.map((v) => (
+                {vehicleList.map((v) => (
                   <div
                     key={v.id}
                     className="flex justify-between items-center py-2.5 text-sm"
                   >
-                    <span className="text-gray-500">{v.type}</span>
+                    <span className="text-gray-500">
+                      {v.vehicle_type ?? "Vehicle"}
+                    </span>
                     <span className="font-medium text-gray-900 tracking-wide">
-                      {v.plateNumber}
+                      {v.license_plate ?? "—"}
                     </span>
                   </div>
                 ))}
@@ -203,7 +284,7 @@ export default function ProfilePage() {
 
         {/* Details card */}
         <div className="col-span-6 flex flex-col gap-4">
-          <h2 className="text-xl font-semibold">Verification Details</h2>
+          <h2 className="text-xl font-semibold">Company Details</h2>
 
           {/* Company information */}
           <div className="rounded-xl border border-gray-200 bg-white px-6 py-2">
@@ -211,16 +292,13 @@ export default function ProfilePage() {
               Company Information
             </p>
             <div className="divide-y divide-gray-100">
-              <CopyableRow
-                label="Full Company Name"
-                value={PROFILE.companyName}
-              />
+              <CopyableRow label="Full Company Name" value={company.name} />
               <CopyableRow
                 label="Company Serial Number"
-                value={PROFILE.serialNumber}
+                value={company.ssm_number}
                 copyable
               />
-              <CopyableRow label="Address" value={PROFILE.address} />
+              <CopyableRow label="Address" value={company.address} />
             </div>
           </div>
 
@@ -230,12 +308,19 @@ export default function ProfilePage() {
               Account Information
             </p>
             <div className="divide-y divide-gray-100">
-              <CopyableRow label="ID" value={PROFILE.id} copyable />
+              <CopyableRow
+                label="ID"
+                value={String(company.id)}
+                copyable
+              />
               <CopyableRow
                 label="Wallet Balance"
-                value={PROFILE.walletBalance}
+                value={formatRm(company.wallet_balance)}
               />
-              <CopyableRow label="Created At" value={PROFILE.createdAt} />
+              <CopyableRow
+                label="Created At"
+                value={formatDate(company.created_at)}
+              />
             </div>
           </div>
         </div>

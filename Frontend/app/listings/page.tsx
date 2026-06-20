@@ -6,115 +6,13 @@ import {
   OrderDetail,
 } from "@/app/components/listings";
 import type { GetCargoRequestItem } from "@/type";
-import { useState } from "react";
-
-const MOCK_CARGO_REQUESTS: GetCargoRequestItem[] = [
-  {
-    id: 1,
-    sender_company: "Kenyalang Office Supplies",
-    pickup: {
-      address: "Warehouse 5, Bintawa Industrial Estate, 93450 Kuching",
-      lat: 1.55,
-      lng: 110.3333,
-      window_start: "2026-06-21T08:00:00Z",
-    },
-    dropoff: {
-      address: "Lot 88, Demak Laut Industrial Park, Kuching",
-      lat: 1.603,
-      lng: 110.287,
-    },
-    cargo_details: {
-      weight_kg: 320.5,
-      volume_m3: 4.2,
-    },
-    priority_flag: false,
-    suggested_budget_rm: 185.2,
-  },
-  {
-    id: 2,
-    sender_company: "Pending Hardware",
-    pickup: {
-      address: "Lot 7, Pending Industrial Park, Kuching",
-      lat: 1.562,
-      lng: 110.348,
-      window_start: "2026-06-21T09:00:00Z",
-    },
-    dropoff: {
-      address: "Jalan Abell, Kuching City Centre",
-      lat: 1.559,
-      lng: 110.343,
-    },
-    cargo_details: {
-      weight_kg: 195,
-      volume_m3: 2.8,
-    },
-    priority_flag: false,
-    suggested_budget_rm: 113.1,
-  },
-  {
-    id: 3,
-    sender_company: "Saberkas Electronics",
-    pickup: {
-      address: "Wisma Saberkas Loading Bay, Kuching",
-      lat: 1.547,
-      lng: 110.341,
-      window_start: "2026-06-22T07:30:00Z",
-    },
-    dropoff: {
-      address: "Kuching Sentral, Jalan Padungan",
-      lat: 1.551,
-      lng: 110.346,
-    },
-    cargo_details: {
-      weight_kg: 510,
-      volume_m3: 6.1,
-    },
-    priority_flag: true,
-    suggested_budget_rm: 240,
-  },
-  {
-    id: 4,
-    sender_company: "CMS Materials",
-    pickup: {
-      address: "CMS Depot, Jalan Bako, Kuching",
-      lat: 1.558,
-      lng: 110.352,
-      window_start: "2026-06-22T08:00:00Z",
-    },
-    dropoff: {
-      address: "Tabuan Jaya Commercial Centre, Kuching",
-      lat: 1.528,
-      lng: 110.374,
-    },
-    cargo_details: {
-      weight_kg: 88,
-      volume_m3: 1.4,
-    },
-    priority_flag: false,
-    suggested_budget_rm: 62.5,
-  },
-  {
-    id: 5,
-    sender_company: "Port Importers",
-    pickup: {
-      address: "Kuching Port Authority, Pending",
-      lat: 1.568,
-      lng: 110.332,
-      window_start: "2026-06-23T06:00:00Z",
-    },
-    dropoff: {
-      address: "Batu Kawa New Township, Kuching",
-      lat: 1.507,
-      lng: 110.296,
-    },
-    cargo_details: {
-      weight_kg: 750,
-      volume_m3: 9.3,
-    },
-    priority_flag: false,
-    suggested_budget_rm: 320,
-  },
-];
+import {
+  cargoRequests,
+  companies,
+  buildCompanyNameMap,
+  toCargoRequestItem,
+} from "@/lib/api";
+import { useEffect, useState } from "react";
 
 const PRIORITY_FILTERS = [
   { value: "all", label: "All requests" },
@@ -129,7 +27,49 @@ export default function CargoRequestsPage() {
   const [priorityFilter, setPriorityFilter] = useState<PriorityFilter>("all");
   const [selected, setSelected] = useState<GetCargoRequestItem | null>(null);
 
-  const filtered = MOCK_CARGO_REQUESTS.filter((request) => {
+  const [requests, setRequests] = useState<GetCargoRequestItem[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    async function load() {
+      setLoading(true);
+      setError(null);
+      try {
+        const [reqs, comps] = await Promise.all([
+          cargoRequests.list({ status_filter: "open" }),
+          companies.list({ limit: 200 }),
+        ]);
+        if (cancelled) return;
+        const nameMap = buildCompanyNameMap(comps);
+        setRequests(
+          reqs.map((r) =>
+            toCargoRequestItem(
+              r,
+              nameMap.get(r.company_id) ?? `Company #${r.company_id}`
+            )
+          )
+        );
+      } catch (err) {
+        if (!cancelled) {
+          setError(
+            err instanceof Error ? err.message : "Failed to load cargo requests"
+          );
+        }
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    }
+
+    load();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const filtered = requests.filter((request) => {
     const q = search.toLowerCase();
     const matchesSearch =
       !q ||
@@ -204,7 +144,18 @@ export default function CargoRequestsPage() {
           ))}
         </div>
 
-        {filtered.length > 0 ? (
+        {loading ? (
+          <div className="flex flex-col items-center justify-center py-24 text-center">
+            <p className="text-sm text-zinc-400">Loading pool requests...</p>
+          </div>
+        ) : error ? (
+          <div className="flex flex-col items-center justify-center py-24 text-center">
+            <p className="text-base font-semibold text-red-500">
+              Couldn&apos;t load requests
+            </p>
+            <p className="text-sm text-zinc-400 mt-1 max-w-xs">{error}</p>
+          </div>
+        ) : filtered.length > 0 ? (
           <div className="flex flex-col gap-3">
             {filtered.map((order) => (
               <OrderCard key={order.id} order={order} onSelect={setSelected} />

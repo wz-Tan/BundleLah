@@ -1,17 +1,37 @@
 "use client";
+
 import Image from "next/image";
 import Link from "next/link";
 import { useState } from "react";
+import { useRouter } from "next/navigation";
+import { auth, ApiError } from "@/lib/api";
+import { saveCompany } from "@/lib/session";
 
 export default function LoginPage() {
+  const router = useRouter();
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    // wire this up to your auth endpoint
-    console.log({ username, password });
+    setError(null);
+    setLoading(true);
+    try {
+      const company = await auth.login({ username, password });
+      saveCompany(company);
+      router.push("/dashboard");
+    } catch (err) {
+      setError(
+        err instanceof ApiError
+          ? err.message
+          : "Something went wrong. Is the backend running?"
+      );
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -64,16 +84,19 @@ export default function LoginPage() {
               </div>
             </div>
 
+            {error && <p className="text-sm text-red-500">{error}</p>}
+
             <button
               type="submit"
-              className="mt-2 rounded-xl bg-orange-500 text-white text-sm font-medium py-2.5 hover:bg-orange-600 transition-colors"
+              disabled={loading}
+              className="mt-2 rounded-xl bg-orange-500 text-white text-sm font-medium py-2.5 hover:bg-orange-600 transition-colors disabled:cursor-not-allowed disabled:bg-gray-300"
             >
-              Log in
+              {loading ? "Logging in..." : "Log in"}
             </button>
           </form>
 
           <p className="text-sm text-gray-400 text-center">
-            Don&apos t have an account?{" "}
+            Don&apos;t have an account?{" "}
             <Link
               href="/register"
               className="text-orange-500 hover:text-orange-600 font-medium"

@@ -39,6 +39,14 @@ export interface VehicleInfo {
   max_payload_kg: number;
 }
 
+export interface Vehicle {
+  id: number;
+  company_id: number;
+  vehicle_type: string | null;
+  license_plate: string | null;
+  max_payload_kg: number | null;
+}
+
 export interface Company {
   id: number;
   name: string;
@@ -76,6 +84,7 @@ export interface CargoRequest {
 export interface TripListing {
   id: number;
   company_id: number;
+  vehicle_id: number | null;
 
   origin_region: string;
   destination_region: string;
