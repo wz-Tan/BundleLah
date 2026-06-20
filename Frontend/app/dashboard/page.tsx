@@ -27,79 +27,6 @@ interface Notification {
   alertType: string;
 }
 
-const SAMPLE_MARKERS: CargoMarker[] = [
-  {
-    id: "m-001",
-    orderId: "ORD-1001",
-    lat: 1.3521,
-    lng: 103.8198,
-    label: "Order #ORD-1001 — Pickup, Jurong East",
-  },
-  {
-    id: "m-002",
-    orderId: "ORD-1002",
-    lat: 1.3036,
-    lng: 103.8318,
-    label: "Order #ORD-1002 — Dropoff, Tanjong Pagar",
-  },
-  {
-    id: "m-003",
-    orderId: "ORD-1003",
-    lat: 1.3496,
-    lng: 103.9568,
-    label: "Order #ORD-1003 — Pickup, Tampines",
-  },
-  {
-    id: "m-004",
-    orderId: "ORD-1004",
-    lat: 1.4382,
-    lng: 103.7891,
-    label: "Order #ORD-1004 — Dropoff, Woodlands",
-  },
-  {
-    id: "m-005",
-    orderId: "ORD-1005",
-    lat: 1.3329,
-    lng: 103.7436,
-    label: "Order #ORD-1005 — Pickup, Jurong West",
-  },
-  {
-    id: "m-006",
-    orderId: "ORD-1006",
-    lat: 1.3644,
-    lng: 103.9915,
-    label: "Order #ORD-1006 — Dropoff, Changi",
-  },
-  {
-    id: "m-007",
-    orderId: "ORD-1007",
-    lat: 1.2966,
-    lng: 103.852,
-    label: "Order #ORD-1007 — In Transit, Marina Bay",
-  },
-  {
-    id: "m-008",
-    orderId: "ORD-1008",
-    lat: 1.3151,
-    lng: 103.7644,
-    label: "Order #ORD-1008 — Pickup, Clementi",
-  },
-  {
-    id: "m-009",
-    orderId: "ORD-1009",
-    lat: 1.3868,
-    lng: 103.7479,
-    label: "Order #ORD-1009 — Dropoff, Bukit Panjang",
-  },
-  {
-    id: "m-010",
-    orderId: "ORD-1010",
-    lat: 1.3691,
-    lng: 103.8454,
-    label: "Order #ORD-1010 — Pickup, Bishan",
-  },
-];
-
 // One line of a worked calculation: the formula (with live constants) and the
 // same formula with this drive's REAL numbers plugged in → result.
 interface CalcStep {
@@ -242,6 +169,59 @@ function buildPanels(
   ];
 }
 
+const CARGO_STATUS_LABEL: Record<string, string> = {
+  open: "Open",
+  matched: "Matched",
+  in_transit: "In Transit",
+  delivered: "Delivered",
+  cancelled: "Cancelled",
+};
+
+function hasCoords(lat?: number | null, lng?: number | null): lat is number {
+  return (
+    lat != null && lng != null && !(lat === 0 && lng === 0)
+  );
+}
+
+// Build a map marker for every order location: each cargo request contributes
+// a pickup pin and a dropoff pin (skipping any with missing coordinates).
+function buildOrderMarkers(orders: CargoRequest[]): CargoMarker[] {
+  const markers: CargoMarker[] = [];
+  for (const cr of orders) {
+    const status = CARGO_STATUS_LABEL[cr.status ?? "open"] ?? cr.status ?? "";
+    if (hasCoords(cr.pickup_lat, cr.pickup_lng)) {
+      markers.push({
+        id: `c${cr.id}-pickup`,
+        orderId: `ORD-${cr.id}`,
+        lat: cr.pickup_lat,
+        lng: cr.pickup_lng,
+        label: `${status} · Pickup — ${cr.pickup_address ?? "Unknown"}`,
+      });
+    }
+    if (hasCoords(cr.dropoff_lat, cr.dropoff_lng)) {
+      markers.push({
+        id: `c${cr.id}-dropoff`,
+        orderId: `ORD-${cr.id}`,
+        lat: cr.dropoff_lat,
+        lng: cr.dropoff_lng,
+        label: `${status} · Dropoff — ${cr.dropoff_address ?? "Unknown"}`,
+      });
+    }
+  }
+  return markers;
+}
+
+// Centre the map on the average of all marker coordinates (falls back to the
+// Kuching operating region when there are no orders to show).
+function markersCenter(markers: CargoMarker[]): { lat: number; lng: number } {
+  if (markers.length === 0) return { lat: 1.5533, lng: 110.3592 };
+  const sum = markers.reduce(
+    (acc, m) => ({ lat: acc.lat + m.lat, lng: acc.lng + m.lng }),
+    { lat: 0, lng: 0 }
+  );
+  return { lat: sum.lat / markers.length, lng: sum.lng / markers.length };
+}
+
 // Helper function to calculate time ago
 const getTimeAgo = (date: Date): string => {
   const now = new Date();
@@ -263,6 +243,7 @@ export default function DashboardPage() {
   const [isLoadingNotifications, setIsLoadingNotifications] = useState(true);
   const [metrics, setMetrics] = useState<DashboardMetrics | null>(null);
   const [pending, setPending] = useState<PendingSummary | null>(null);
+  const [orders, setOrders] = useState<CargoRequest[]>([]);
   const [isLoadingMetrics, setIsLoadingMetrics] = useState(true);
   const popoverRef = useRef<HTMLDivElement>(null);
 
@@ -343,6 +324,7 @@ export default function DashboardPage() {
 
         setMetrics(computed);
         setPending(computePendingSummary(myCargo));
+        setOrders(myCargo);
       } catch (err) {
         console.error("Failed to compute dashboard metrics:", err);
       } finally {
@@ -471,6 +453,8 @@ export default function DashboardPage() {
 
   const panels = metrics && pending ? buildPanels(metrics, pending) : [];
   const activePanel = panels.find((p) => p.id === active);
+  const orderMarkers = buildOrderMarkers(orders);
+  const mapCenter = markersCenter(orderMarkers);
 
   return (
     <main className="mx-12 my-8 relative min-h-screen pb-24">
@@ -479,10 +463,7 @@ export default function DashboardPage() {
         <div className="col-span-7 flex flex-col gap-4">
           <h2 className="text-xl font-semibold">Cargo Progress</h2>
           <div className="flex-1 min-h-196 rounded-xl border border-gray-200 overflow-hidden">
-            <CargoMap
-              center={{ lat: 1.3521, lng: 103.8198 }}
-              markers={SAMPLE_MARKERS}
-            />
+            <CargoMap center={mapCenter} markers={orderMarkers} />
           </div>
         </div>
 
