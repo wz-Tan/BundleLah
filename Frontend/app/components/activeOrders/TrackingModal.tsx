@@ -140,15 +140,15 @@ export function TrackingModal({
         className="absolute inset-0 bg-black/40 backdrop-blur-sm"
         onClick={onClose}
       />
-      <div className="relative z-10 w-full max-w-lg bg-white rounded-2xl shadow-2xl flex flex-col overflow-hidden max-h-[90vh]">
+      <div className="relative z-10 w-full max-w-5xl bg-white rounded-2xl shadow-2xl flex flex-col overflow-hidden max-h-[90vh]">
         {/* Header */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100">
           <div>
-            <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-orange-600 uppercase tracking-wider">
+            <span className="inline-flex items-center gap-1.5 text-sm font-semibold text-orange-600 uppercase tracking-wider">
               <span className="h-2 w-2 rounded-full bg-orange-500 animate-pulse" />
               Live IoT Tracking
             </span>
-            <h3 className="text-base font-semibold text-gray-900 mt-0.5">
+            <h3 className="text-lg font-semibold text-gray-900 mt-0.5">
               {title ?? `Shipment #${cargoMatchId}`}
             </h3>
           </div>
@@ -179,12 +179,12 @@ export function TrackingModal({
           {!loading && !error && !device && !showDeviceForm && (
             <div className="text-center py-8 text-gray-400">
               <p className="text-sm">No device configured</p>
-              <p className="text-xs mt-1 mb-4">
+              <p className="text-sm mt-1 mb-4">
                 A device must be created for this shipment to start tracking.
               </p>
               <button
                 onClick={() => setShowDeviceForm(true)}
-                className="text-xs font-medium bg-blue-500 text-white hover:bg-blue-600 px-4 py-2 rounded-lg transition-colors cursor-pointer"
+                className="text-sm font-medium bg-blue-500 text-white hover:bg-blue-600 px-4 py-2 rounded-lg transition-colors cursor-pointer"
               >
                 + Create Device
               </button>
@@ -194,17 +194,17 @@ export function TrackingModal({
           {/* Device Creation Form */}
           {showDeviceForm && !device && (
             <div className="border border-blue-200 bg-blue-50/30 rounded-xl p-4">
-              <h5 className="text-xs font-semibold text-blue-900 uppercase tracking-wide mb-3">
+              <h5 className="text-sm font-semibold text-blue-900 uppercase tracking-wide mb-3">
                 New Device Configuration
               </h5>
               {error && (
-                <div className="bg-red-50 border border-red-200 text-red-700 px-3 py-2 rounded-lg text-xs mb-3">
+                <div className="bg-red-50 border border-red-200 text-red-700 px-3 py-2 rounded-lg text-sm mb-3">
                   {error}
                 </div>
               )}
               <div className="grid grid-cols-2 gap-3 mb-4">
                 <div className="col-span-2">
-                  <label className="text-xs text-gray-600 block mb-1 font-medium">
+                  <label className="text-sm text-gray-600 block mb-1 font-medium">
                     Device Secret (Password) <span className="text-red-500">*</span>
                   </label>
                   <input
@@ -215,10 +215,10 @@ export function TrackingModal({
                     placeholder="Enter a secure password for this device"
                     required
                   />
-                  <p className="text-xs text-gray-500 mt-1">This will be used to authenticate the device when sending tracking data</p>
+                  <p className="text-sm text-gray-500 mt-1">This will be used to authenticate the device when sending tracking data</p>
                 </div>
                 <div>
-                  <label className="text-xs text-gray-600 block mb-1">
+                  <label className="text-sm text-gray-600 block mb-1">
                     Temperature Threshold (°C)
                   </label>
                   <input
@@ -231,7 +231,7 @@ export function TrackingModal({
                   />
                 </div>
                 <div>
-                  <label className="text-xs text-gray-600 block mb-1">
+                  <label className="text-sm text-gray-600 block mb-1">
                     Humidity Threshold (%)
                   </label>
                   <input
@@ -243,7 +243,7 @@ export function TrackingModal({
                   />
                 </div>
                 <div>
-                  <label className="text-xs text-gray-600 block mb-1">
+                  <label className="text-sm text-gray-600 block mb-1">
                     Ethylene Threshold (ppm)
                   </label>
                   <input
@@ -273,14 +273,14 @@ export function TrackingModal({
                     setShowDeviceForm(false);
                     setError(null);
                   }}
-                  className="text-xs font-medium border border-gray-200 text-gray-500 hover:bg-gray-50 px-4 py-2 rounded-lg transition-colors cursor-pointer"
+                  className="text-sm font-medium border border-gray-200 text-gray-500 hover:bg-gray-50 px-4 py-2 rounded-lg transition-colors cursor-pointer"
                   disabled={isCreating}
                 >
                   Cancel
                 </button>
                 <button
                   onClick={handleCreateDevice}
-                  className="text-xs font-medium bg-blue-500 text-white hover:bg-blue-600 px-4 py-2 rounded-lg transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="text-sm font-medium bg-blue-500 text-white hover:bg-blue-600 px-4 py-2 rounded-lg transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
                   disabled={isCreating}
                 >
                   {isCreating ? "Creating..." : "Create Device"}
@@ -301,13 +301,13 @@ export function TrackingModal({
                       </svg>
                     </div>
                     <div className="ml-3 flex-1">
-                      <p className="text-xs font-semibold text-yellow-800">
+                      <p className="text-sm font-semibold text-yellow-800">
                         ⚠️ One-time Secret Display
                       </p>
-                      <p className="text-xs text-yellow-700 mt-1">
+                      <p className="text-sm text-yellow-700 mt-1">
                         Save this information now. The secret will not be shown again after closing this modal.
                       </p>
-                      <div className="mt-2 bg-white border border-yellow-300 rounded-lg p-2 font-mono text-xs break-all">
+                      <div className="mt-2 bg-white border border-yellow-300 rounded-lg p-2 font-mono text-sm break-all">
                         <div className="text-gray-600">Device ID: <span className="font-bold text-gray-900">{device.id}</span></div>
                         <div className="text-gray-600 mt-1">Secret: <span className="font-bold text-gray-900">{device.secret}</span></div>
                       </div>
@@ -316,108 +316,332 @@ export function TrackingModal({
                 </div>
               )}
 
-              {/* Device info */}
-              <div className="border border-green-200 bg-green-50/30 rounded-xl p-4">
-                <div className="flex justify-between items-start mb-3">
-                  <div>
-                    <span className="text-xs font-bold text-green-700 uppercase tracking-wide">
-                      Device Active
-                    </span>
-                    <p className="text-sm font-mono text-gray-700 mt-1">
-                      ID: {device.id}
-                    </p>
+              {/* Current Stats Panel */}
+              {trackingRecords.length > 0 && (() => {
+                const latestRecord = trackingRecords[trackingRecords.length - 1];
+                const tempExceeded = device.temperature_threshold && latestRecord.temperature && latestRecord.temperature > device.temperature_threshold;
+                const humExceeded = device.humidity_threshold && latestRecord.humidity && latestRecord.humidity > device.humidity_threshold;
+                const ethExceeded = device.ethylene_threshold && latestRecord.ethylene_level && latestRecord.ethylene_level > device.ethylene_threshold;
+                const hasAlert = tempExceeded || humExceeded || ethExceeded || latestRecord.motion_detected;
+
+                return (
+                  <div className={`border rounded-xl p-4 ${hasAlert ? 'border-red-300 bg-red-50/50' : 'border-green-200 bg-green-50/30'}`}>
+                    <div className="flex justify-between items-start mb-3">
+                      <div>
+                        <span className={`text-sm font-bold uppercase tracking-wide ${hasAlert ? 'text-red-700' : 'text-green-700'
+                          }`}>
+                          {hasAlert ? '⚠️ ALERT - Threshold Exceeded' : '✓ All Systems Normal'}
+                        </span>
+                        <p className="text-sm text-gray-600 mt-1">
+                          Last Updated: {new Date(latestRecord.recorded_at).toLocaleString()}
+                        </p>
+                      </div>
+                      <span className={`text-sm px-2.5 py-1 rounded-full font-medium ${hasAlert ? 'bg-red-600 text-white' : 'bg-green-600 text-white'
+                        }`}>
+                        {hasAlert ? 'Alert' : 'Online'}
+                      </span>
+                    </div>
+                    <div className="grid grid-cols-4 gap-3">
+                      <div className={`p-3 rounded-lg ${tempExceeded ? 'bg-red-100 border border-red-300' : 'bg-white border border-gray-200'
+                        }`}>
+                        <span className="text-sm text-gray-500 block mb-1">Temperature</span>
+                        <p className={`text-2xl font-bold ${tempExceeded ? 'text-red-700' : 'text-gray-900'
+                          }`}>
+                          {latestRecord.temperature?.toFixed(1) ?? 'N/A'}°C
+                        </p>
+                        {device.temperature_threshold && (
+                          <span className="text-sm text-gray-500">Limit: {device.temperature_threshold}°C</span>
+                        )}
+                        {tempExceeded && (
+                          <span className="text-sm text-red-600 font-semibold block mt-1">⚠️ EXCEEDED</span>
+                        )}
+                      </div>
+                      <div className={`p-3 rounded-lg ${humExceeded ? 'bg-red-100 border border-red-300' : 'bg-white border border-gray-200'
+                        }`}>
+                        <span className="text-sm text-gray-500 block mb-1">Humidity</span>
+                        <p className={`text-2xl font-bold ${humExceeded ? 'text-red-700' : 'text-gray-900'
+                          }`}>
+                          {latestRecord.humidity ?? 'N/A'}%
+                        </p>
+                        {device.humidity_threshold && (
+                          <span className="text-sm text-gray-500">Limit: {device.humidity_threshold}%</span>
+                        )}
+                        {humExceeded && (
+                          <span className="text-sm text-red-600 font-semibold block mt-1">⚠️ EXCEEDED</span>
+                        )}
+                      </div>
+                      <div className={`p-3 rounded-lg ${ethExceeded ? 'bg-red-100 border border-red-300' : 'bg-white border border-gray-200'
+                        }`}>
+                        <span className="text-sm text-gray-500 block mb-1">Ethylene</span>
+                        <p className={`text-2xl font-bold ${ethExceeded ? 'text-red-700' : 'text-gray-900'
+                          }`}>
+                          {latestRecord.ethylene_level?.toFixed(1) ?? 'N/A'} ppm
+                        </p>
+                        {device.ethylene_threshold && (
+                          <span className="text-sm text-gray-500">Limit: {device.ethylene_threshold} ppm</span>
+                        )}
+                        {ethExceeded && (
+                          <span className="text-sm text-red-600 font-semibold block mt-1">⚠️ EXCEEDED</span>
+                        )}
+                      </div>
+                      <div className={`p-3 rounded-lg ${latestRecord.motion_detected ? 'bg-red-100 border border-red-300' : 'bg-white border border-gray-200'
+                        }`}>
+                        <span className="text-sm text-gray-500 block mb-1">Motion</span>
+                        <p className={`text-2xl font-bold ${latestRecord.motion_detected ? 'text-red-700' : 'text-gray-900'
+                          }`}>
+                          {latestRecord.motion_detected ? 'Detected' : 'None'}
+                        </p>
+                        <span className="text-sm text-gray-500">
+                          Alarm: {device.motion_alarm ? 'On' : 'Off'}
+                        </span>
+                        {latestRecord.motion_detected && (
+                          <span className="text-sm text-red-600 font-semibold block mt-1">⚠️ ALERT</span>
+                        )}
+                      </div>
+                    </div>
                   </div>
-                  <span className="text-xs bg-green-600 text-white px-2.5 py-1 rounded-full font-medium">
-                    Online
-                  </span>
-                </div>
-                <div className="grid grid-cols-4 gap-2 text-xs">
-                  <div>
-                    <span className="text-gray-500">Temp</span>
-                    <p className="font-semibold text-gray-900">
-                      {device.temperature_threshold ?? "N/A"}°C
-                    </p>
-                  </div>
-                  <div>
-                    <span className="text-gray-500">Humidity</span>
-                    <p className="font-semibold text-gray-900">
-                      {device.humidity_threshold ?? "N/A"}%
-                    </p>
-                  </div>
-                  <div>
-                    <span className="text-gray-500">Ethylene</span>
-                    <p className="font-semibold text-gray-900">
-                      {device.ethylene_threshold ?? "N/A"} ppm
-                    </p>
-                  </div>
-                  <div>
-                    <span className="text-gray-500">Motion</span>
-                    <p className="font-semibold text-gray-900">
-                      {device.motion_alarm ? "Enabled" : "Disabled"}
-                    </p>
-                  </div>
-                </div>
-              </div>
+                );
+              })()}
 
               {/* Tracking records */}
               {trackingRecords.length > 0 ? (
                 <div>
-                  <h5 className="text-xs font-semibold text-gray-700 uppercase tracking-wide mb-3">
+                  <h5 className="text-sm font-semibold text-gray-700 uppercase tracking-wide mb-3">
                     Tracking Records ({trackingRecords.length})
                   </h5>
-                  <div className="space-y-2 max-h-72 overflow-y-auto">
-                    {trackingRecords.map((record) => (
-                      <div
-                        key={record.id}
-                        className="bg-gray-50 border border-gray-200 rounded-lg p-3 text-xs"
-                      >
-                        <div className="flex justify-between items-start mb-2">
-                          <span className="font-mono text-gray-400">
-                            #{record.id}
-                          </span>
-                          <span className="text-gray-500">
-                            {new Date(record.recorded_at).toLocaleString()}
-                          </span>
-                        </div>
-                        <div className="grid grid-cols-3 gap-2">
+
+                  {/* Chart Visualization */}
+                  {trackingRecords.length > 1 && (
+                    <div className="bg-white border border-gray-200 rounded-lg p-4 mb-4">
+                      <div className="space-y-4">
+                        {/* Temperature Chart */}
+                        {trackingRecords.some(r => r.temperature !== null) && (
                           <div>
-                            <span className="text-gray-500">Temp:</span>
-                            <span className="font-semibold text-gray-900 ml-1">
-                              {record.temperature?.toFixed(1) ?? "N/A"}°C
-                            </span>
+                            <div className="flex justify-between items-center mb-2">
+                              <span className="text-sm font-medium text-gray-600">Temperature (°C)</span>
+                              {device.temperature_threshold && (
+                                <span className="text-sm text-orange-600">Threshold: {device.temperature_threshold}°C</span>
+                              )}
+                            </div>
+                            <div className="relative h-40 bg-gray-50 rounded">
+                              <svg className="w-full h-full" preserveAspectRatio="none">
+                                <polyline
+                                  fill="none"
+                                  stroke="#ef4444"
+                                  strokeWidth="2"
+                                  points={trackingRecords
+                                    .map((r, i) => {
+                                      const temps = trackingRecords.map(r => r.temperature || 0);
+                                      const maxTemp = Math.max(...temps, device.temperature_threshold || 0);
+                                      const minTemp = Math.min(...temps);
+                                      const range = maxTemp - minTemp || 1;
+                                      const x = (i / (trackingRecords.length - 1)) * 100;
+                                      const y = 100 - (((r.temperature || 0) - minTemp) / range) * 80;
+                                      return `${x},${y}`;
+                                    })
+                                    .join(" ")}
+                                />
+                                {device.temperature_threshold && (() => {
+                                  const temps = trackingRecords.map(r => r.temperature || 0);
+                                  const maxTemp = Math.max(...temps, device.temperature_threshold);
+                                  const minTemp = Math.min(...temps);
+                                  const range = maxTemp - minTemp || 1;
+                                  const thresholdY = 100 - ((device.temperature_threshold - minTemp) / range) * 80;
+                                  return (
+                                    <line
+                                      x1="0"
+                                      y1={`${thresholdY}%`}
+                                      x2="100%"
+                                      y2={`${thresholdY}%`}
+                                      stroke="#f97316"
+                                      strokeWidth="1"
+                                      strokeDasharray="4,4"
+                                      opacity="0.5"
+                                    />
+                                  );
+                                })()}
+                              </svg>
+                            </div>
+                            <div className="flex justify-between text-sm text-gray-400 mt-1">
+                              <span>{trackingRecords[0]?.temperature?.toFixed(1)}°C</span>
+                              <span>{trackingRecords[trackingRecords.length - 1]?.temperature?.toFixed(1)}°C</span>
+                            </div>
                           </div>
+                        )}
+
+                        {/* Humidity Chart */}
+                        {trackingRecords.some(r => r.humidity !== null) && (
                           <div>
-                            <span className="text-gray-500">Humidity:</span>
-                            <span className="font-semibold text-gray-900 ml-1">
-                              {record.humidity ?? "N/A"}%
-                            </span>
+                            <div className="flex justify-between items-center mb-2">
+                              <span className="text-sm font-medium text-gray-600">Humidity (%)</span>
+                              {device.humidity_threshold && (
+                                <span className="text-sm text-blue-600">Threshold: {device.humidity_threshold}%</span>
+                              )}
+                            </div>
+                            <div className="relative h-40 bg-gray-50 rounded">
+                              <svg className="w-full h-full" preserveAspectRatio="none">
+                                <polyline
+                                  fill="none"
+                                  stroke="#3b82f6"
+                                  strokeWidth="2"
+                                  points={trackingRecords
+                                    .map((r, i) => {
+                                      const humidities = trackingRecords.map(r => r.humidity || 0);
+                                      const maxHum = Math.max(...humidities, device.humidity_threshold || 0);
+                                      const minHum = Math.min(...humidities);
+                                      const range = maxHum - minHum || 1;
+                                      const x = (i / (trackingRecords.length - 1)) * 100;
+                                      const y = 100 - (((r.humidity || 0) - minHum) / range) * 80;
+                                      return `${x},${y}`;
+                                    })
+                                    .join(" ")}
+                                />
+                                {device.humidity_threshold && (() => {
+                                  const humidities = trackingRecords.map(r => r.humidity || 0);
+                                  const maxHum = Math.max(...humidities, device.humidity_threshold);
+                                  const minHum = Math.min(...humidities);
+                                  const range = maxHum - minHum || 1;
+                                  const thresholdY = 100 - ((device.humidity_threshold - minHum) / range) * 80;
+                                  return (
+                                    <line
+                                      x1="0"
+                                      y1={`${thresholdY}%`}
+                                      x2="100%"
+                                      y2={`${thresholdY}%`}
+                                      stroke="#3b82f6"
+                                      strokeWidth="1"
+                                      strokeDasharray="4,4"
+                                      opacity="0.5"
+                                    />
+                                  );
+                                })()}
+                              </svg>
+                            </div>
+                            <div className="flex justify-between text-sm text-gray-400 mt-1">
+                              <span>{trackingRecords[0]?.humidity}%</span>
+                              <span>{trackingRecords[trackingRecords.length - 1]?.humidity}%</span>
+                            </div>
                           </div>
+                        )}
+
+                        {/* Ethylene Chart */}
+                        {trackingRecords.some(r => r.ethylene_level !== null) && (
                           <div>
-                            <span className="text-gray-500">Ethylene:</span>
-                            <span className="font-semibold text-gray-900 ml-1">
-                              {record.ethylene_level?.toFixed(1) ?? "N/A"} ppm
-                            </span>
+                            <div className="flex justify-between items-center mb-2">
+                              <span className="text-sm font-medium text-gray-600">Ethylene (ppm)</span>
+                              {device.ethylene_threshold && (
+                                <span className="text-sm text-purple-600">Threshold: {device.ethylene_threshold} ppm</span>
+                              )}
+                            </div>
+                            <div className="relative h-40 bg-gray-50 rounded">
+                              <svg className="w-full h-full" preserveAspectRatio="none">
+                                <polyline
+                                  fill="none"
+                                  stroke="#8b5cf6"
+                                  strokeWidth="2"
+                                  points={trackingRecords
+                                    .map((r, i) => {
+                                      const ethylenes = trackingRecords.map(r => r.ethylene_level || 0);
+                                      const maxEth = Math.max(...ethylenes, device.ethylene_threshold || 0);
+                                      const minEth = Math.min(...ethylenes);
+                                      const range = maxEth - minEth || 1;
+                                      const x = (i / (trackingRecords.length - 1)) * 100;
+                                      const y = 100 - (((r.ethylene_level || 0) - minEth) / range) * 80;
+                                      return `${x},${y}`;
+                                    })
+                                    .join(" ")}
+                                />
+                                {device.ethylene_threshold && (() => {
+                                  const ethylenes = trackingRecords.map(r => r.ethylene_level || 0);
+                                  const maxEth = Math.max(...ethylenes, device.ethylene_threshold);
+                                  const minEth = Math.min(...ethylenes);
+                                  const range = maxEth - minEth || 1;
+                                  const thresholdY = 100 - ((device.ethylene_threshold - minEth) / range) * 80;
+                                  return (
+                                    <line
+                                      x1="0"
+                                      y1={`${thresholdY}%`}
+                                      x2="100%"
+                                      y2={`${thresholdY}%`}
+                                      stroke="#8b5cf6"
+                                      strokeWidth="1"
+                                      strokeDasharray="4,4"
+                                      opacity="0.5"
+                                    />
+                                  );
+                                })()}
+                              </svg>
+                            </div>
+                            <div className="flex justify-between text-sm text-gray-400 mt-1">
+                              <span>{trackingRecords[0]?.ethylene_level?.toFixed(1)} ppm</span>
+                              <span>{trackingRecords[trackingRecords.length - 1]?.ethylene_level?.toFixed(1)} ppm</span>
+                            </div>
                           </div>
-                        </div>
-                        <div className="mt-2 flex justify-between items-center">
-                          <div className="text-gray-600">
-                            📍 {record.latitude?.toFixed(4)},{" "}
-                            {record.longitude?.toFixed(4)}
-                          </div>
-                          {record.motion_detected && (
-                            <span className="text-xs bg-red-100 text-red-700 px-2 py-0.5 rounded-full font-medium">
-                              Motion Detected
-                            </span>
-                          )}
-                        </div>
+                        )}
                       </div>
-                    ))}
-                  </div>
+                    </div>
+                  )}
+
+                  {/* Detailed Records List */}
+                  <details className="group">
+                    <summary className="cursor-pointer text-sm font-medium text-gray-600 hover:text-gray-900 mb-2 list-none flex items-center gap-2">
+                      <span className="group-open:rotate-90 transition-transform">▶</span>
+                      View Detailed Records
+                    </summary>
+                    <div className="space-y-2 max-h-60 overflow-y-auto mt-2">
+                      {trackingRecords.map((record) => (
+                        <div
+                          key={record.id}
+                          className="bg-gray-50 border border-gray-200 rounded-lg p-3 text-sm"
+                        >
+                          <div className="flex justify-between items-start mb-2">
+                            <span className="font-mono text-gray-400">
+                              #{record.id}
+                            </span>
+                            <span className="text-gray-500">
+                              {new Date(record.recorded_at).toLocaleString()}
+                            </span>
+                          </div>
+                          <div className="grid grid-cols-3 gap-2">
+                            <div>
+                              <span className="text-gray-500">Temp:</span>
+                              <span className="font-semibold text-gray-900 ml-1">
+                                {record.temperature?.toFixed(1) ?? "N/A"}°C
+                              </span>
+                            </div>
+                            <div>
+                              <span className="text-gray-500">Humidity:</span>
+                              <span className="font-semibold text-gray-900 ml-1">
+                                {record.humidity ?? "N/A"}%
+                              </span>
+                            </div>
+                            <div>
+                              <span className="text-gray-500">Ethylene:</span>
+                              <span className="font-semibold text-gray-900 ml-1">
+                                {record.ethylene_level?.toFixed(1) ?? "N/A"} ppm
+                              </span>
+                            </div>
+                          </div>
+                          <div className="mt-2 flex justify-between items-center">
+                            <div className="text-gray-600">
+                              📍 {record.latitude?.toFixed(4)},{" "}
+                              {record.longitude?.toFixed(4)}
+                            </div>
+                            {record.motion_detected && (
+                              <span className="text-sm bg-red-100 text-red-700 px-2 py-0.5 rounded-full font-medium">
+                                Motion Detected
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </details>
                 </div>
               ) : (
                 <div className="text-center py-8 text-gray-400">
                   <p className="text-sm">No tracking records yet</p>
-                  <p className="text-xs mt-1">
+                  <p className="text-sm mt-1">
                     Records will appear as the device reports data.
                   </p>
                 </div>

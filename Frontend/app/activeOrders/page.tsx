@@ -320,28 +320,28 @@ export default function ActiveOrdersPage() {
       acc.some((a) => a.trackingMatchId === req.matchId)
         ? acc
         : [
-            {
-              id: trip.id,
-              pickup: trip.pickup,
-              destination: trip.destination,
-              dateTime: trip.dateTime,
-              status: "accepted",
-              poolingRequests: [],
-              trackingMatchId: req.matchId,
-            },
-            ...acc,
-          ]
+          {
+            id: trip.id,
+            pickup: trip.pickup,
+            destination: trip.destination,
+            dateTime: trip.dateTime,
+            status: "accepted",
+            poolingRequests: [],
+            trackingMatchId: req.matchId,
+          },
+          ...acc,
+        ]
     );
     // Drop it from the originating trip's pending pooling requests.
     setTrips((prev) =>
       prev.map((t) =>
         t.id === trip.id
           ? {
-              ...t,
-              poolingRequests: t.poolingRequests.filter(
-                (p) => p.matchId !== req.matchId
-              ),
-            }
+            ...t,
+            poolingRequests: t.poolingRequests.filter(
+              (p) => p.matchId !== req.matchId
+            ),
+          }
           : t
       )
     );
@@ -359,11 +359,11 @@ export default function ActiveOrdersPage() {
       prev.map((t) =>
         t.id === trip.id
           ? {
-              ...t,
-              poolingRequests: t.poolingRequests.filter(
-                (p) => p.matchId !== req.matchId
-              ),
-            }
+            ...t,
+            poolingRequests: t.poolingRequests.filter(
+              (p) => p.matchId !== req.matchId
+            ),
+          }
           : t
       )
     );
@@ -465,7 +465,7 @@ export default function ActiveOrdersPage() {
                       onClick={() => setSubTab("completed")}
                       className={pillClass(subTab === "completed")}
                     >
-                      Completed ({completedCount})
+                      Active ({completedCount})
                     </button>
                   </>
                 );
