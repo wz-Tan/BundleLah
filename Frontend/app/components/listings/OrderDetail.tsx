@@ -13,13 +13,17 @@ export function OrderDetail({
   order,
   onClose,
   onOfferPool,
+  existingMatchId = null,
+  onCancelRequest,
 }: {
   order: GetCargoRequestItem;
   onClose: () => void;
   onOfferPool?: (
     order: GetCargoRequestItem,
     tripListingId: number
-  ) => Promise<void>;
+  ) => Promise<number>;
+  existingMatchId?: number | null;
+  onCancelRequest?: (orderId: number, matchId: number) => Promise<void>;
 }) {
   const pickupStart = order.pickup.window_start
     ? formatTime(order.pickup.window_start)
@@ -32,6 +36,11 @@ export function OrderDetail({
 
   const [poolStatus, setPoolStatus] = useState<PoolStatus>("idle");
   const [poolError, setPoolError] = useState<string | null>(null);
+  // Match id of an offer already sent for this cargo (null = none yet).
+  const [matchId, setMatchId] = useState<number | null>(existingMatchId);
+  const [cancelling, setCancelling] = useState(false);
+
+  const alreadyRequested = matchId !== null;
 
   useEffect(() => {
     const companyId = getCurrentCompanyId();
@@ -65,14 +74,15 @@ export function OrderDetail({
       !onOfferPool ||
       selectedTripId === null ||
       poolStatus === "loading" ||
-      poolStatus === "success"
+      alreadyRequested
     ) {
       return;
     }
     setPoolStatus("loading");
     setPoolError(null);
     try {
-      await onOfferPool(order, selectedTripId);
+      const newMatchId = await onOfferPool(order, selectedTripId);
+      setMatchId(newMatchId);
       setPoolStatus("success");
     } catch (err) {
       setPoolError(
@@ -82,11 +92,26 @@ export function OrderDetail({
     }
   }
 
+  async function handleCancelRequest() {
+    if (!onCancelRequest || matchId === null || cancelling) return;
+    setCancelling(true);
+    setPoolError(null);
+    try {
+      await onCancelRequest(order.id, matchId);
+      setMatchId(null);
+      setPoolStatus("idle");
+    } catch (err) {
+      setPoolError(
+        err instanceof Error ? err.message : "Failed to cancel the request."
+      );
+    } finally {
+      setCancelling(false);
+    }
+  }
+
   const offerLabel =
     poolStatus === "loading"
       ? "Sending offer..."
-      : poolStatus === "success"
-      ? "Offer sent ✓"
       : poolStatus === "error"
       ? "Retry offer"
       : "Offer To Pool This Cargo";
@@ -110,11 +135,18 @@ export function OrderDetail({
           <p className="text-base font-semibold text-zinc-900 mt-1">
             {order.sender_company}
           </p>
-          {order.priority_flag && (
-            <span className="inline-flex mt-2 text-xs font-bold uppercase tracking-widest text-amber-600 bg-amber-50 px-2 py-1 rounded-md">
-              Priority
-            </span>
-          )}
+          <div className="flex items-center gap-2 mt-2">
+            {order.priority_flag && (
+              <span className="inline-flex text-xs font-bold uppercase tracking-widest text-amber-600 bg-amber-50 px-2 py-1 rounded-md">
+                Priority
+              </span>
+            )}
+            {alreadyRequested && (
+              <span className="inline-flex text-xs font-bold uppercase tracking-widest text-blue-700 bg-blue-100 px-2 py-1 rounded-md">
+                Requested
+              </span>
+            )}
+          </div>
         </div>
 
         <div className="flex-1 overflow-y-auto px-5 py-4 flex flex-col gap-5">
@@ -173,7 +205,12 @@ export function OrderDetail({
             <p className="text-[10px] uppercase tracking-widest text-zinc-400 font-semibold mb-2">
               Assign one of your trips
             </p>
-            {tripsLoading ? (
+            {alreadyRequested ? (
+              <p className="rounded-lg bg-blue-50 px-3 py-2.5 text-sm text-blue-700">
+                You&apos;ve already offered one of your trips to carry this
+                cargo. Cancel the request below to choose a different trip.
+              </p>
+            ) : tripsLoading ? (
               <p className="text-sm text-zinc-400">Loading your trips...</p>
             ) : trips.length === 0 ? (
               <p className="text-sm text-zinc-500">
@@ -205,17 +242,29 @@ export function OrderDetail({
           {poolError && (
             <p className="mb-2 text-xs text-red-600">{poolError}</p>
           )}
-          <button
-            onClick={handleOffer}
-            disabled={
-              selectedTripId === null ||
-              poolStatus === "loading" ||
-              poolStatus === "success"
-            }
-            className="w-full h-11 rounded-full bg-zinc-900 text-white text-sm font-semibold hover:bg-zinc-700 transition-colors disabled:cursor-not-allowed disabled:opacity-60"
-          >
-            {offerLabel}
-          </button>
+          {alreadyRequested ? (
+            <div className="flex flex-col gap-2">
+              <div className="flex items-center justify-center gap-2 rounded-full bg-blue-50 px-4 py-2 text-sm font-semibold text-blue-700">
+                <span className="h-1.5 w-1.5 rounded-full bg-blue-500" />
+                Pool offer sent
+              </div>
+              <button
+                onClick={handleCancelRequest}
+                disabled={cancelling || !onCancelRequest}
+                className="w-full h-11 rounded-full border border-red-200 bg-white text-sm font-semibold text-red-600 hover:bg-red-50 transition-colors disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                {cancelling ? "Cancelling..." : "Cancel request"}
+              </button>
+            </div>
+          ) : (
+            <button
+              onClick={handleOffer}
+              disabled={selectedTripId === null || poolStatus === "loading"}
+              className="w-full h-11 rounded-full bg-zinc-900 text-white text-sm font-semibold hover:bg-zinc-700 transition-colors disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              {offerLabel}
+            </button>
+          )}
         </div>
       </div>
     </div>

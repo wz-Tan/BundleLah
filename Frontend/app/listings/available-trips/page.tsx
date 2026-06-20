@@ -18,6 +18,10 @@ export default function AvailableTripsPage() {
   const [trips, setTrips] = useState<GetTripListingItem[]>([]);
   // Ids of trips listed by the current user this session (cancellable).
   const [myIds, setMyIds] = useState<Set<number>>(new Set());
+  // trip id -> match id for pool requests this company has already sent.
+  const [requestedMatches, setRequestedMatches] = useState<Map<number, number>>(
+    new Map()
+  );
   const [submitError, setSubmitError] = useState<string | null>(null);
 
   async function handleCreate(trip: TripListing) {
@@ -70,10 +74,10 @@ export default function AvailableTripsPage() {
   async function handleRequestPool(
     trip: GetTripListingItem,
     cargoRequestId: number
-  ) {
+  ): Promise<number> {
     const cargo = await cargoRequests.get(cargoRequestId);
     const pricePerKg = trip.estimated_price_per_kg_rm;
-    await cargoMatches.create({
+    const match = await cargoMatches.create({
       trip_listing_id: trip.id,
       cargo_request_id: cargo.id,
       initiated_by: "cargo_owner",
@@ -81,6 +85,18 @@ export default function AvailableTripsPage() {
         pricePerKg != null && cargo.weight_kg != null
           ? Math.round(pricePerKg * cargo.weight_kg * 100) / 100
           : undefined,
+    });
+    setRequestedMatches((prev) => new Map(prev).set(trip.id, match.id));
+    return match.id;
+  }
+
+  // Withdraw a pool request previously sent for this trip.
+  async function handleCancelRequest(tripId: number, matchId: number) {
+    await cargoMatches.remove(matchId);
+    setRequestedMatches((prev) => {
+      const next = new Map(prev);
+      next.delete(tripId);
+      return next;
     });
   }
 
@@ -122,6 +138,26 @@ export default function AvailableTripsPage() {
             )
           )
         );
+
+        // Restore any pool requests this company already sent (for its cargo)
+        // so the "Requested" state survives a page reload.
+        if (companyId != null) {
+          const myCargo = await cargoRequests.list({ company_id: companyId });
+          if (cancelled) return;
+          if (myCargo.length > 0) {
+            const matchGroups = await Promise.all(
+              myCargo.map((c) => cargoMatches.list({ cargo_request_id: c.id }))
+            );
+            if (cancelled) return;
+            const requested = new Map<number, number>();
+            matchGroups.flat().forEach((m) => {
+              if (m.initiated_by === "cargo_owner") {
+                requested.set(m.trip_listing_id, m.id);
+              }
+            });
+            setRequestedMatches(requested);
+          }
+        }
       } catch (err) {
         if (!cancelled) {
           setError(
@@ -225,6 +261,7 @@ export default function AvailableTripsPage() {
                 trip={trip}
                 onSelect={setSelected}
                 isOwn={myIds.has(trip.id)}
+                requested={requestedMatches.has(trip.id)}
                 onCancel={myIds.has(trip.id) ? handleCancel : undefined}
               />
             ))}
@@ -249,6 +286,8 @@ export default function AvailableTripsPage() {
           trip={selected}
           onClose={() => setSelected(null)}
           onRequestPool={handleRequestPool}
+          existingMatchId={requestedMatches.get(selected.id) ?? null}
+          onCancelRequest={handleCancelRequest}
         />
       )}
 

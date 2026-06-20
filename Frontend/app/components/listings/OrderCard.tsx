@@ -9,11 +9,13 @@ export function OrderCard({
   onSelect,
   onCancel,
   isOwn = false,
+  requested = false,
 }: {
   order: GetCargoRequestItem;
   onSelect: (o: GetCargoRequestItem) => void;
   onCancel?: (id: number) => void;
   isOwn?: boolean;
+  requested?: boolean;
 }) {
   const pickupStart = order.pickup.window_start
     ? formatTime(order.pickup.window_start)
@@ -48,6 +50,11 @@ export function OrderCard({
             {isOwn && (
               <span className="text-[10px] font-bold uppercase tracking-widest text-orange-600 bg-orange-100 px-1.5 py-0.5 rounded">
                 Your request
+              </span>
+            )}
+            {requested && (
+              <span className="text-[10px] font-bold uppercase tracking-widest text-blue-600 bg-blue-100 px-1.5 py-0.5 rounded">
+                Requested
               </span>
             )}
             <span className="text-[11px] text-zinc-400 font-mono">

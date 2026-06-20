@@ -22,13 +22,17 @@ export function TripDetail({
     trip,
     onClose,
     onRequestPool,
+    existingMatchId = null,
+    onCancelRequest,
 }: {
     trip: GetTripListingItem;
     onClose: () => void;
     onRequestPool?: (
         trip: GetTripListingItem,
         cargoRequestId: number
-    ) => Promise<void>;
+    ) => Promise<number>;
+    existingMatchId?: number | null;
+    onCancelRequest?: (tripId: number, matchId: number) => Promise<void>;
 }) {
     const details = [
         ["Available weight", `${trip.available_capacity.weight_kg} kg`],
@@ -45,6 +49,11 @@ export function TripDetail({
 
     const [poolStatus, setPoolStatus] = useState<PoolStatus>("idle");
     const [poolError, setPoolError] = useState<string | null>(null);
+    // Match id of a request already sent for this trip (null = none yet).
+    const [matchId, setMatchId] = useState<number | null>(existingMatchId);
+    const [cancelling, setCancelling] = useState(false);
+
+    const alreadyRequested = matchId !== null;
 
     useEffect(() => {
         const companyId = getCurrentCompanyId();
@@ -78,14 +87,15 @@ export function TripDetail({
             !onRequestPool ||
             selectedRequestId === null ||
             poolStatus === "loading" ||
-            poolStatus === "success"
+            alreadyRequested
         ) {
             return;
         }
         setPoolStatus("loading");
         setPoolError(null);
         try {
-            await onRequestPool(trip, selectedRequestId);
+            const newMatchId = await onRequestPool(trip, selectedRequestId);
+            setMatchId(newMatchId);
             setPoolStatus("success");
         } catch (err) {
             setPoolError(
@@ -95,11 +105,26 @@ export function TripDetail({
         }
     }
 
+    async function handleCancelRequest() {
+        if (!onCancelRequest || matchId === null || cancelling) return;
+        setCancelling(true);
+        setPoolError(null);
+        try {
+            await onCancelRequest(trip.id, matchId);
+            setMatchId(null);
+            setPoolStatus("idle");
+        } catch (err) {
+            setPoolError(
+                err instanceof Error ? err.message : "Failed to cancel the request."
+            );
+        } finally {
+            setCancelling(false);
+        }
+    }
+
     const requestLabel =
         poolStatus === "loading"
             ? "Sending request..."
-            : poolStatus === "success"
-            ? "Request sent ✓"
             : poolStatus === "error"
             ? "Retry request"
             : "Request To Pool Cargo";
@@ -128,6 +153,11 @@ export function TripDetail({
                     </p>
                     <div className="mt-2">
                         <TripStatusBadge status={trip.match_status} />
+                        {alreadyRequested && (
+                            <span className="ml-2 inline-flex text-xs font-bold uppercase tracking-widest text-blue-700 bg-blue-100 px-2 py-1 rounded-md">
+                                Requested
+                            </span>
+                        )}
                     </div>
                 </div>
 
@@ -181,7 +211,13 @@ export function TripDetail({
                         <p className="mb-2 text-[10px] font-semibold uppercase tracking-widest text-zinc-400">
                             Assign one of your pooling requests
                         </p>
-                        {requestsLoading ? (
+                        {alreadyRequested ? (
+                            <p className="rounded-lg bg-blue-50 px-3 py-2.5 text-sm text-blue-700">
+                                You&apos;ve already requested this trip for one of
+                                your cargo requests. Cancel below to choose a
+                                different one.
+                            </p>
+                        ) : requestsLoading ? (
                             <p className="text-sm text-zinc-400">
                                 Loading your requests...
                             </p>
@@ -218,17 +254,32 @@ export function TripDetail({
                     {poolError && (
                         <p className="mb-2 text-xs text-red-600">{poolError}</p>
                     )}
-                    <button
-                        onClick={handleRequest}
-                        disabled={
-                            selectedRequestId === null ||
-                            poolStatus === "loading" ||
-                            poolStatus === "success"
-                        }
-                        className="h-11 w-full rounded-full bg-zinc-900 text-sm font-semibold text-white transition-colors hover:bg-zinc-700 disabled:cursor-not-allowed disabled:opacity-60"
-                    >
-                        {requestLabel}
-                    </button>
+                    {alreadyRequested ? (
+                        <div className="flex flex-col gap-2">
+                            <div className="flex items-center justify-center gap-2 rounded-full bg-blue-50 px-4 py-2 text-sm font-semibold text-blue-700">
+                                <span className="h-1.5 w-1.5 rounded-full bg-blue-500" />
+                                Pool request sent
+                            </div>
+                            <button
+                                onClick={handleCancelRequest}
+                                disabled={cancelling || !onCancelRequest}
+                                className="h-11 w-full rounded-full border border-red-200 bg-white text-sm font-semibold text-red-600 transition-colors hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-60"
+                            >
+                                {cancelling ? "Cancelling..." : "Cancel request"}
+                            </button>
+                        </div>
+                    ) : (
+                        <button
+                            onClick={handleRequest}
+                            disabled={
+                                selectedRequestId === null ||
+                                poolStatus === "loading"
+                            }
+                            className="h-11 w-full rounded-full bg-zinc-900 text-sm font-semibold text-white transition-colors hover:bg-zinc-700 disabled:cursor-not-allowed disabled:opacity-60"
+                        >
+                            {requestLabel}
+                        </button>
+                    )}
                 </div>
             </div>
         </div>

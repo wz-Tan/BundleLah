@@ -261,6 +261,8 @@ export const cargoMatches = {
       method: "PATCH",
       body: JSON.stringify(payload),
     }),
+  remove: (id: number) =>
+    request<void>(`/cargo-matches/${id}`, { method: "DELETE" }),
 };
 
 export const costSplits = {

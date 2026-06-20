@@ -14,7 +14,7 @@ import {
   buildCompanyNameMap,
   toCargoRequestItem,
 } from "@/lib/api";
-import { getCurrentCompanyId, getStoredCompany } from "@/lib/session";
+import { getStoredCompany } from "@/lib/session";
 import { useEffect, useState } from "react";
 
 const PRIORITY_FILTERS = [
@@ -33,6 +33,10 @@ export default function CargoRequestsPage() {
   const [requests, setRequests] = useState<GetCargoRequestItem[]>([]);
   // Ids of postings created by the current user this session (cancellable).
   const [myIds, setMyIds] = useState<Set<number>>(new Set());
+  // order id -> match id for offers this company has already sent.
+  const [requestedMatches, setRequestedMatches] = useState<Map<number, number>>(
+    new Map()
+  );
   const [submitError, setSubmitError] = useState<string | null>(null);
 
   async function handleCreate(req: CargoRequest) {
@@ -87,12 +91,24 @@ export default function CargoRequestsPage() {
   async function handleOfferPool(
     order: GetCargoRequestItem,
     tripListingId: number
-  ) {
-    await cargoMatches.create({
+  ): Promise<number> {
+    const match = await cargoMatches.create({
       trip_listing_id: tripListingId,
       cargo_request_id: order.id,
       initiated_by: "logistics_provider",
       agreed_price_rm: order.suggested_budget_rm,
+    });
+    setRequestedMatches((prev) => new Map(prev).set(order.id, match.id));
+    return match.id;
+  }
+
+  // Withdraw a pool offer that was previously sent for this cargo request.
+  async function handleCancelRequest(orderId: number, matchId: number) {
+    await cargoMatches.remove(matchId);
+    setRequestedMatches((prev) => {
+      const next = new Map(prev);
+      next.delete(orderId);
+      return next;
     });
   }
 
@@ -135,6 +151,26 @@ export default function CargoRequestsPage() {
             )
           )
         );
+
+        // Restore any pool offers this company already sent (via its trips)
+        // so the "Requested" state survives a page reload.
+        if (companyId != null) {
+          const myTrips = await tripListings.list({ company_id: companyId });
+          if (cancelled) return;
+          if (myTrips.length > 0) {
+            const matchGroups = await Promise.all(
+              myTrips.map((t) => cargoMatches.list({ trip_listing_id: t.id }))
+            );
+            if (cancelled) return;
+            const offered = new Map<number, number>();
+            matchGroups.flat().forEach((m) => {
+              if (m.initiated_by === "logistics_provider") {
+                offered.set(m.cargo_request_id, m.id);
+              }
+            });
+            setRequestedMatches(offered);
+          }
+        }
       } catch (err) {
         if (!cancelled) {
           setError(
@@ -259,6 +295,7 @@ export default function CargoRequestsPage() {
                 order={order}
                 onSelect={setSelected}
                 isOwn={myIds.has(order.id)}
+                requested={requestedMatches.has(order.id)}
                 onCancel={myIds.has(order.id) ? handleCancel : undefined}
               />
             ))}
@@ -283,6 +320,8 @@ export default function CargoRequestsPage() {
           order={selected}
           onClose={() => setSelected(null)}
           onOfferPool={handleOfferPool}
+          existingMatchId={requestedMatches.get(selected.id) ?? null}
+          onCancelRequest={handleCancelRequest}
         />
       )}
 

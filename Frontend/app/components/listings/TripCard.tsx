@@ -18,11 +18,13 @@ export function TripCard({
   onSelect,
   onCancel,
   isOwn = false,
+  requested = false,
 }: {
   trip: GetTripListingItem;
   onSelect: (trip: GetTripListingItem) => void;
   onCancel?: (id: number) => void;
   isOwn?: boolean;
+  requested?: boolean;
 }) {
   return (
     <div className="relative">
@@ -43,6 +45,11 @@ export function TripCard({
             {isOwn && (
               <span className="text-[10px] font-bold uppercase tracking-widest text-emerald-700 bg-emerald-100 px-1.5 py-0.5 rounded">
                 Your trip
+              </span>
+            )}
+            {requested && (
+              <span className="text-[10px] font-bold uppercase tracking-widest text-blue-600 bg-blue-100 px-1.5 py-0.5 rounded">
+                Requested
               </span>
             )}
           </div>
