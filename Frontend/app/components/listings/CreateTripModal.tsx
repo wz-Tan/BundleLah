@@ -37,7 +37,7 @@ function TextField({
 }) {
   return (
     <div className="flex flex-col gap-1">
-      <label className="text-xs font-semibold uppercase tracking-widest text-zinc-500 dark:text-zinc-400">
+      <label className="text-xs font-semibold uppercase tracking-widest text-zinc-500">
         {label}
       </label>
       <input
@@ -45,8 +45,8 @@ function TextField({
         placeholder={placeholder}
         value={value}
         onChange={e => onChange(field, e.target.value)}
-        className={`h-10 rounded-lg border border-solid px-3 text-sm bg-zinc-50 dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 placeholder:text-zinc-400 outline-none focus:border-emerald-500 transition-colors ${
-          error ? "border-red-400" : "border-black/[.08] dark:border-white/[.1]"
+        className={`h-10 rounded-lg border border-solid px-3 text-sm bg-zinc-50  text-zinc-900 placeholder:text-zinc-400 outline-none focus:border-emerald-500 transition-colors ${
+          error ? "border-red-400" : "border-black/[.08]"
         }`}
       />
       {error && <p className="text-[11px] text-red-500">{error}</p>}
@@ -118,19 +118,19 @@ export function CreateTripModal({
     <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4">
       <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={onClose} />
 
-      <div className="relative z-10 w-full max-w-lg bg-white dark:bg-zinc-900 rounded-2xl shadow-2xl overflow-hidden">
-        <div className="flex items-center justify-between px-6 py-4 border-b border-black/[.06] dark:border-white/[.08]">
+      <div className="relative z-10 w-full max-w-lg bg-white rounded-2xl shadow-2xl overflow-hidden">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-black/[.06]">
           <div>
             <p className="text-[10px] uppercase tracking-widest text-emerald-600 font-bold mb-0.5">
               New Trip
             </p>
-            <h2 className="text-lg font-semibold text-zinc-900 dark:text-zinc-50">
+            <h2 className="text-lg font-semibold text-zinc-900 ">
               List a Trip
             </h2>
           </div>
           <button
             onClick={onClose}
-            className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-zinc-100 dark:hover:bg-zinc-800 text-zinc-500 transition-colors text-lg leading-none"
+            className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-zinc-100 text-zinc-500 transition-colors text-lg leading-none"
           >
             ×
           </button>
@@ -204,10 +204,10 @@ export function CreateTripModal({
           </div>
         </div>
 
-        <div className="px-6 py-4 border-t border-black/[.06] dark:border-white/[.08] flex gap-3">
+        <div className="px-6 py-4 border-t border-black/[.06] flex gap-3">
           <button
             onClick={onClose}
-            className="flex-1 h-11 rounded-full border border-solid border-black/[.08] dark:border-white/[.12] text-sm font-medium text-zinc-700 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-800 transition-colors"
+            className="flex-1 h-11 rounded-full border border-solid border-black/[.08] text-sm font-medium text-zinc-700 over:bg-zinc-50 transition-colors"
           >
             Cancel
           </button>

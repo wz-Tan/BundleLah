@@ -39,7 +39,7 @@ function TextField({
 }) {
   return (
     <div className="flex flex-col gap-1">
-      <label className="text-xs font-semibold uppercase tracking-widest text-zinc-500 dark:text-zinc-400">
+      <label className="text-xs font-semibold uppercase tracking-widest text-zinc-500 ">
         {label}
       </label>
       <input
@@ -47,8 +47,8 @@ function TextField({
         placeholder={placeholder}
         value={value}
         onChange={e => onChange(field, e.target.value)}
-        className={`h-10 rounded-lg border border-solid px-3 text-sm bg-zinc-50 dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 placeholder:text-zinc-400 outline-none focus:border-amber-400 transition-colors ${
-          error ? "border-red-400" : "border-black/[.08] dark:border-white/[.1]"
+        className={`h-10 rounded-lg border border-solid px-3 text-sm bg-zinc-50  text-zinc-900 placeholder:text-zinc-400 outline-none focus:border-amber-400 transition-colors ${
+          error ? "border-red-400" : "border-black/[.08] "
         }`}
       />
       {error && <p className="text-[11px] text-red-500">{error}</p>}
@@ -170,19 +170,19 @@ export function CreateCargoRequestModal({
     <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4">
       <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={onClose} />
 
-      <div className="relative z-10 w-full max-w-lg bg-white dark:bg-zinc-900 rounded-2xl shadow-2xl overflow-hidden">
-        <div className="flex items-center justify-between px-6 py-4 border-b border-black/[.06] dark:border-white/[.08]">
+      <div className="relative z-10 w-full max-w-lg bg-white rounded-2xl shadow-2xl overflow-hidden">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-black/[.06]">
           <div>
             <p className="text-[10px] uppercase tracking-widest text-amber-500 font-bold mb-0.5">
               Cargo Pooling
             </p>
-            <h2 className="text-lg font-semibold text-zinc-900 dark:text-zinc-50">
+            <h2 className="text-lg font-semibold text-zinc-900">
               Request a pool
             </h2>
           </div>
           <button
             onClick={onClose}
-            className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-zinc-100 dark:hover:bg-zinc-800 text-zinc-500 transition-colors text-lg leading-none"
+            className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-zinc-100 text-zinc-500 transition-colors text-lg leading-none"
           >
             ×
           </button>
@@ -242,13 +242,13 @@ export function CreateCargoRequestModal({
             />
           </div>
 
-          <label className="flex items-center justify-between cursor-pointer rounded-lg border border-solid border-black/[.06] dark:border-white/[.08] px-4 py-3 hover:bg-zinc-50 dark:hover:bg-zinc-800 transition-colors">
+          <label className="flex items-center justify-between cursor-pointer rounded-lg border border-solid border-black/[.06] px-4 py-3 hover:bg-zinc-50 transition-colors">
             <div>
-              <p className="text-sm font-medium text-zinc-800 dark:text-zinc-200">Priority shipment</p>
+              <p className="text-sm font-medium text-zinc-800">Priority shipment</p>
               <p className="text-xs text-zinc-400">Flagged for expedited grouping</p>
             </div>
             <div
-              className={`relative w-10 h-5 rounded-full transition-colors ${form.priority_flag ? "bg-amber-400" : "bg-zinc-200 dark:bg-zinc-700"}`}
+              className={`relative w-10 h-5 rounded-full transition-colors ${form.priority_flag ? "bg-amber-400" : "bg-zinc-200"}`}
               onClick={() => setField("priority_flag", !form.priority_flag)}
             >
               <div
@@ -307,16 +307,16 @@ export function CreateCargoRequestModal({
           </div>
         </div>
 
-        <div className="px-6 py-4 border-t border-black/[.06] dark:border-white/[.08] flex gap-3">
+        <div className="px-6 py-4 border-t border-black/[.06] flex gap-3">
           <button
             onClick={onClose}
-            className="flex-1 h-11 rounded-full border border-solid border-black/[.08] dark:border-white/[.12] text-sm font-medium text-zinc-700 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-800 transition-colors"
+            className="flex-1 h-11 rounded-full border border-solid border-black/[.08] text-sm font-medium text-zinc-700 hover:bg-zinc-50 transition-colors"
           >
             Cancel
           </button>
           <button
             onClick={handleSubmit}
-            className="flex-1 h-11 rounded-full bg-zinc-900 dark:bg-zinc-50 text-white dark:text-zinc-900 text-sm font-semibold hover:bg-zinc-700 dark:hover:bg-zinc-200 transition-colors"
+            className="flex-1 h-11 rounded-full bg-zinc-900 text-white text-sm font-semibold hover:bg-zinc-700 transition-colors"
           >
             Submit Order
           </button>

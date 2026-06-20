@@ -8,7 +8,7 @@ export function CargoStatusBadge({ status }: { status: CargoRequestStatus }) {
   return (
     <span className="inline-flex items-center gap-1.5">
       <span className={`inline-block w-2 h-2 rounded-full ${s.dot}`} />
-      <span className="text-xs font-medium text-zinc-600 dark:text-zinc-400 uppercase tracking-wide">
+      <span className="text-xs font-medium text-zinc-600 uppercase tracking-wide">
         {s.label}
       </span>
     </span>
@@ -20,7 +20,7 @@ export function TripStatusBadge({ status }: { status: TripListingStatus }) {
   return (
     <span className="inline-flex items-center gap-1.5">
       <span className={`inline-block w-2 h-2 rounded-full ${s.dot}`} />
-      <span className="text-xs font-medium text-zinc-600 dark:text-zinc-400 uppercase tracking-wide">
+      <span className="text-xs font-medium text-zinc-600 uppercase tracking-wide">
         {s.label}
       </span>
     </span>

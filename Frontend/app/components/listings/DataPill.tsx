@@ -6,7 +6,7 @@ export function DataPill({ label, value }: { label: string; value: string }) {
       <span className="text-[10px] uppercase tracking-widest text-zinc-400 font-medium leading-none mb-0.5">
         {label}
       </span>
-      <span className="text-sm font-semibold text-zinc-800 dark:text-zinc-200 tabular-nums">
+      <span className="text-sm font-semibold text-zinc-800 tabular-nums">
         {value}
       </span>
     </span>
