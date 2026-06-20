@@ -258,6 +258,7 @@ export default function CargoRequestsPage() {
                 key={order.id}
                 order={order}
                 onSelect={setSelected}
+                isOwn={myIds.has(order.id)}
                 onCancel={myIds.has(order.id) ? handleCancel : undefined}
               />
             ))}

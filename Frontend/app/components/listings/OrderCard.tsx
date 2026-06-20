@@ -8,10 +8,12 @@ export function OrderCard({
   order,
   onSelect,
   onCancel,
+  isOwn = false,
 }: {
   order: GetCargoRequestItem;
   onSelect: (o: GetCargoRequestItem) => void;
   onCancel?: (id: number) => void;
+  isOwn?: boolean;
 }) {
   const pickupStart = order.pickup.window_start
     ? formatTime(order.pickup.window_start)
@@ -27,9 +29,13 @@ export function OrderCard({
     <div className="relative">
       <button
         onClick={() => onSelect(order)}
-        className={`w-full text-left border border-solid border-black/[.06] border-l-4 ${
+        className={`w-full text-left border border-solid border-l-4 ${
           order.priority_flag ? "border-l-amber-400" : "border-l-emerald-500"
-        } rounded-lg bg-white p-4 transition-all hover:shadow-md hover:border-black/[.12] active:scale-[0.995]`}
+        } ${
+          isOwn
+            ? "border-orange-300 ring-2 ring-orange-200 bg-orange-50/50"
+            : "border-black/[.06] bg-white hover:border-black/[.12]"
+        } rounded-lg p-4 transition-all hover:shadow-md active:scale-[0.995]`}
       >
       <div className="flex items-start justify-between gap-3 mb-3">
         <div className="flex-1 min-w-0">
@@ -37,6 +43,11 @@ export function OrderCard({
             {order.priority_flag && (
               <span className="text-[10px] font-bold uppercase tracking-widest text-amber-600 bg-amber-50 px-1.5 py-0.5 rounded">
                 Priority
+              </span>
+            )}
+            {isOwn && (
+              <span className="text-[10px] font-bold uppercase tracking-widest text-orange-600 bg-orange-100 px-1.5 py-0.5 rounded">
+                Your request
               </span>
             )}
             <span className="text-[11px] text-zinc-400 font-mono">

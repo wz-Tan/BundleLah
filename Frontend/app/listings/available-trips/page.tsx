@@ -224,6 +224,7 @@ export default function AvailableTripsPage() {
                 key={trip.id}
                 trip={trip}
                 onSelect={setSelected}
+                isOwn={myIds.has(trip.id)}
                 onCancel={myIds.has(trip.id) ? handleCancel : undefined}
               />
             ))}

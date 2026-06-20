@@ -17,22 +17,35 @@ export function TripCard({
   trip,
   onSelect,
   onCancel,
+  isOwn = false,
 }: {
   trip: GetTripListingItem;
   onSelect: (trip: GetTripListingItem) => void;
   onCancel?: (id: number) => void;
+  isOwn?: boolean;
 }) {
   return (
     <div className="relative">
       <button
         onClick={() => onSelect(trip)}
-        className="w-full rounded-lg border border-solid border-black/[.06] bg-white p-4 text-left transition-all hover:border-black/[.12] hover:shadow-md active:scale-[0.995]"
+        className={`w-full rounded-lg border border-solid p-4 text-left transition-all hover:shadow-md active:scale-[0.995] ${
+          isOwn
+            ? "border-emerald-300 ring-2 ring-emerald-200 bg-emerald-50/50"
+            : "border-black/[.06] bg-white hover:border-black/[.12]"
+        }`}
       >
       <div className="mb-3 flex items-start justify-between gap-3">
         <div className="min-w-0">
-          <p className="text-sm font-semibold text-zinc-900">
-            {trip.logistics_provider.name}
-          </p>
+          <div className="flex items-center gap-2">
+            <p className="text-sm font-semibold text-zinc-900">
+              {trip.logistics_provider.name}
+            </p>
+            {isOwn && (
+              <span className="text-[10px] font-bold uppercase tracking-widest text-emerald-700 bg-emerald-100 px-1.5 py-0.5 rounded">
+                Your trip
+              </span>
+            )}
+          </div>
           <p className="mt-0.5 text-xs text-zinc-400">
             {trip.logistics_provider.vehicle_type} · {trip.logistics_provider.license_plate}
           </p>
