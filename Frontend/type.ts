@@ -79,6 +79,9 @@ export interface CargoRequest {
   status: CargoRequestStatus;
   priority_flag: boolean;
   created_at: string;
+
+  /** Budget the requester is willing to pay (RM). Frontend pricing field. */
+  budget_rm?: number;
 }
 
 export interface TripListing {
@@ -97,6 +100,9 @@ export interface TripListing {
 
   status: TripListingStatus;
   created_at: string;
+
+  /** Price per kg the provider charges (RM). Frontend pricing field. */
+  price_per_kg_rm?: number;
 }
 
 export interface CargoMatch {
@@ -161,6 +167,7 @@ export interface GetTripListingItem {
     volume_m3: number;
   };
   match_status: TripListingStatus;
+  estimated_price_per_kg_rm?: number;
 }
 
 export interface GetTripListingsResponse {

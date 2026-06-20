@@ -1,4 +1,7 @@
-import { GoogleMap, LoadScriptNext, Marker } from "@react-google-maps/api";
+"use client";
+
+import { GoogleMap, Marker } from "@react-google-maps/api";
+import { useGoogleMaps, GOOGLE_MAPS_API_KEY } from "@/lib/googleMaps";
 
 // container style needs explicit height since flex-1 alone won't size the map
 const mapContainerStyle = {
@@ -22,23 +25,29 @@ interface CargoMapProps {
   center?: { lat: number; lng: number };
   markers?: CargoMarker[];
 }
-const GOOGLE_MAPS_API_KEY = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
 
 export function CargoMap({
   center = defaultCenter,
   markers = [],
 }: CargoMapProps) {
+  const { isLoaded } = useGoogleMaps();
+
+  if (!isLoaded) {
+    return (
+      <div
+        style={mapContainerStyle}
+        className="flex items-center justify-center bg-zinc-100 dark:bg-zinc-800 text-xs text-zinc-400"
+      >
+        {GOOGLE_MAPS_API_KEY ? "Loading map…" : "Map unavailable — missing API key"}
+      </div>
+    );
+  }
+
   return (
-    <LoadScriptNext googleMapsApiKey={GOOGLE_MAPS_API_KEY || ""}>
-      <GoogleMap mapContainerStyle={mapContainerStyle} center={center} zoom={6}>
-        {markers.map((m, i) => (
-          <Marker
-            key={i}
-            position={{ lat: m.lat, lng: m.lng }}
-            title={m.label}
-          />
-        ))}
-      </GoogleMap>
-    </LoadScriptNext>
+    <GoogleMap mapContainerStyle={mapContainerStyle} center={center} zoom={6}>
+      {markers.map((m, i) => (
+        <Marker key={i} position={{ lat: m.lat, lng: m.lng }} title={m.label} />
+      ))}
+    </GoogleMap>
   );
 }

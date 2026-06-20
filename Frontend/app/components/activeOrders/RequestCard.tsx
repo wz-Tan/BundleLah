@@ -4,17 +4,20 @@ import { isPositiveStatus, type OrderRequest } from "./types";
 
 interface RequestCardProps {
   request: OrderRequest;
+  onDelete?: (id: string) => void;
 }
 
-export function RequestCard({ request }: RequestCardProps) {
+export function RequestCard({ request, onDelete }: RequestCardProps) {
   return (
     <div className="bg-white border border-gray-200 rounded-xl p-5 flex flex-col justify-between shadow-sm">
       <div className="flex justify-between items-start mb-4">
         <div>
           <span className="text-xs font-semibold text-gray-400 uppercase tracking-wider">
-            Order ID
+            {request.offeredBy ? "Offer From" : "Order ID"}
           </span>
-          <h3 className="text-sm font-bold text-gray-900">{request.id}</h3>
+          <h3 className="text-sm font-bold text-gray-900">
+            {request.offeredBy ?? request.id}
+          </h3>
         </div>
         <span
           className={`text-xs px-2.5 py-1 rounded-full font-medium uppercase tracking-wide ${
@@ -45,6 +48,15 @@ export function RequestCard({ request }: RequestCardProps) {
           RM {request.price}
         </span>
       </div>
+
+      {onDelete && (
+        <button
+          onClick={() => onDelete(request.id)}
+          className="mt-3 self-end text-xs font-medium text-zinc-400 hover:text-red-500 transition-colors"
+        >
+          Delete
+        </button>
+      )}
     </div>
   );
 }

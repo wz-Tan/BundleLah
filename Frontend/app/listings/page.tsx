@@ -9,10 +9,13 @@ import {
 } from "@/app/components/listings";
 import {
   cargoRequests,
+  cargoMatches,
+  tripListings,
   companies,
   buildCompanyNameMap,
   toCargoRequestItem,
 } from "@/lib/api";
+import { getCurrentCompanyId, getStoredCompany } from "@/lib/session";
 import { useEffect, useState } from "react";
 
 const PRIORITY_FILTERS = [
@@ -28,13 +31,66 @@ export default function CargoRequestsPage() {
   const [priorityFilter, setPriorityFilter] = useState<PriorityFilter>("all");
   const [selected, setSelected] = useState<GetCargoRequestItem | null>(null);
   const [showCreate, setShowCreate] = useState(false);
+  const [requests, setRequests] = useState<GetCargoRequestItem[]>([]);
+  // order id -> match id for offers this company has already sent.
+  const [requestedMatches, setRequestedMatches] = useState<Map<number, number>>(
+    new Map()
+  );
+  const [submitError, setSubmitError] = useState<string | null>(null);
 
-  function handleCreate(req: CargoRequest) {
-    console.log("New cargo request:", req);
-    setShowCreate(false);
+  async function handleCreate(req: CargoRequest) {
+    setSubmitError(null);
+    const company = getStoredCompany();
+    const companyId = company?.id ?? 1;
+    try {
+      await cargoRequests.create({
+        company_id: companyId,
+        pickup_address: req.pickup_address,
+        pickup_lat: req.pickup_lat,
+        pickup_lng: req.pickup_lng,
+        dropoff_address: req.dropoff_address,
+        dropoff_lat: req.dropoff_lat,
+        dropoff_lng: req.dropoff_lng,
+        weight_kg: req.weight_kg,
+        volume_m3: req.volume_m3,
+        pickup_window_start: req.pickup_window_start,
+        pickup_window_end: req.pickup_window_end,
+        priority_flag: req.priority_flag,
+      });
+      // Own requests are hidden from this list, so nothing is added here.
+      setShowCreate(false);
+    } catch (err) {
+      setSubmitError(
+        err instanceof Error ? err.message : "Failed to save the request."
+      );
+    }
   }
 
-  const [requests, setRequests] = useState<GetCargoRequestItem[]>([]);
+  // Offer the chosen trip to carry this cargo request.
+  async function handleOfferPool(
+    order: GetCargoRequestItem,
+    tripListingId: number
+  ): Promise<number> {
+    const match = await cargoMatches.create({
+      trip_listing_id: tripListingId,
+      cargo_request_id: order.id,
+      initiated_by: "logistics_provider",
+      agreed_price_rm: order.suggested_budget_rm,
+    });
+    setRequestedMatches((prev) => new Map(prev).set(order.id, match.id));
+    return match.id;
+  }
+
+  // Withdraw a pool offer that was previously sent for this cargo request.
+  async function handleCancelRequest(orderId: number, matchId: number) {
+    await cargoMatches.remove(matchId);
+    setRequestedMatches((prev) => {
+      const next = new Map(prev);
+      next.delete(orderId);
+      return next;
+    });
+  }
+
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -51,14 +107,38 @@ export default function CargoRequestsPage() {
         ]);
         if (cancelled) return;
         const nameMap = buildCompanyNameMap(comps);
+        const companyId = getCurrentCompanyId();
+        // Hide the company's own requests so it can't offer a pool to itself.
         setRequests(
-          reqs.map((r) =>
-            toCargoRequestItem(
-              r,
-              nameMap.get(r.company_id) ?? `Company #${r.company_id}`
+          reqs
+            .filter((r) => companyId == null || r.company_id !== companyId)
+            .map((r) =>
+              toCargoRequestItem(
+                r,
+                nameMap.get(r.company_id) ?? `Company #${r.company_id}`
+              )
             )
-          )
         );
+
+        // Restore any pool offers this company already sent (via its trips)
+        // so the "Requested" state survives a page reload.
+        if (companyId != null) {
+          const myTrips = await tripListings.list({ company_id: companyId });
+          if (cancelled) return;
+          if (myTrips.length > 0) {
+            const matchGroups = await Promise.all(
+              myTrips.map((t) => cargoMatches.list({ trip_listing_id: t.id }))
+            );
+            if (cancelled) return;
+            const offered = new Map<number, number>();
+            matchGroups.flat().forEach((m) => {
+              if (m.initiated_by === "logistics_provider") {
+                offered.set(m.cargo_request_id, m.id);
+              }
+            });
+            setRequestedMatches(offered);
+          }
+        }
       } catch (err) {
         if (!cancelled) {
           setError(
@@ -120,6 +200,12 @@ export default function CargoRequestsPage() {
           + New request
         </button>
 
+        {submitError && (
+          <div className="mb-4 rounded-lg border border-red-200 bg-red-50 px-4 py-2.5 text-sm text-red-600">
+            {submitError}
+          </div>
+        )}
+
         <ListingModeTabs />
 
         <div className="relative mb-4">
@@ -172,7 +258,12 @@ export default function CargoRequestsPage() {
         ) : filtered.length > 0 ? (
           <div className="flex flex-col gap-3">
             {filtered.map((order) => (
-              <OrderCard key={order.id} order={order} onSelect={setSelected} />
+              <OrderCard
+                key={order.id}
+                order={order}
+                onSelect={setSelected}
+                requested={requestedMatches.has(order.id)}
+              />
             ))}
           </div>
         ) : (
@@ -191,7 +282,13 @@ export default function CargoRequestsPage() {
       </main>
 
       {selected && (
-        <OrderDetail order={selected} onClose={() => setSelected(null)} />
+        <OrderDetail
+          order={selected}
+          onClose={() => setSelected(null)}
+          onOfferPool={handleOfferPool}
+          existingMatchId={requestedMatches.get(selected.id) ?? null}
+          onCancelRequest={handleCancelRequest}
+        />
       )}
 
       {showCreate && (

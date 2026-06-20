@@ -25,7 +25,7 @@ class CargoMatch(Base):
     cargo_request_id: Mapped[Optional[int]] = mapped_column(
         ForeignKey("cargo_requests.id", ondelete="CASCADE")
     )
-    # Which side started the match: 'carrier' (trip owner) or 'shipper' (cargo owner)
+    # Which side started the match: 'logistics_provider' (trip owner) or 'cargo_owner' (cargo owner)
     initiated_by: Mapped[Optional[str]] = mapped_column(String(50))
     status: Mapped[Optional[str]] = mapped_column(String(20), default="pending")
     agreed_price_rm: Mapped[Optional[Decimal]] = mapped_column(Numeric(12, 2))

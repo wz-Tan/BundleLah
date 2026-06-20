@@ -5,7 +5,7 @@ from typing import Optional, Literal
 from pydantic import BaseModel, ConfigDict
 
 CargoMatchStatus = Literal["pending", "accepted", "rejected"]
-InitiatedBy = Literal["carrier", "shipper"]
+InitiatedBy = Literal["logistics_provider", "cargo_owner"]
 
 
 class CargoMatchBase(BaseModel):

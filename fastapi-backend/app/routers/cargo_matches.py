@@ -92,3 +92,24 @@ def update_match(
     db.commit()
     db.refresh(match)
     return match
+
+
+@router.delete("/{match_id}", status_code=status.HTTP_204_NO_CONTENT)
+def delete_match(match_id: int, db: Session = Depends(get_db)):
+    match = db.get(CargoMatch, match_id)
+    if match is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Match not found"
+        )
+
+    # Releasing a pending match should free up the linked records again.
+    cargo_request = db.get(CargoRequest, match.cargo_request_id)
+    trip_listing = db.get(TripListing, match.trip_listing_id)
+    if cargo_request is not None and cargo_request.status == "matched":
+        cargo_request.status = "open"
+    if trip_listing is not None and trip_listing.status == "locked":
+        trip_listing.status = "open"
+
+    db.delete(match)
+    db.commit()
+    return None

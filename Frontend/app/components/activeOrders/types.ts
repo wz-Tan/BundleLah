@@ -7,6 +7,8 @@ export interface OrderRequest {
   destination: string;
   price: number;
   status: string;
+  // For offers on your cargo: the logistics provider who made the offer.
+  offeredBy?: string;
 }
 
 export interface TripListingDisplay {

@@ -5,6 +5,8 @@ import { useEffect, useState } from "react";
 import {
   cargoRequests,
   tripListings,
+  cargoMatches,
+  companies,
   estimateBudgetRm,
   ApiError,
 } from "@/lib/api";
@@ -56,16 +58,119 @@ export default function ActiveOrdersPage() {
         ]);
         if (cancelled) return;
 
-        setRequests(
-          cargo.map((cr) => ({
-            id: `CR-${cr.id}`,
-            pickup: cr.pickup_address,
-            destination: cr.dropoff_address,
-            price: estimateBudgetRm(cr.weight_kg),
-            status: cr.status,
-          }))
+        // Pull pooling requests/offers (cargo_matches) tied to this company,
+        // both as the trip owner and as the cargo owner.
+        const matchLists = await Promise.all([
+          ...listings.map((tl) =>
+            cargoMatches.list({ trip_listing_id: tl.id })
+          ),
+          ...cargo.map((cr) => cargoMatches.list({ cargo_request_id: cr.id })),
+        ]);
+        if (cancelled) return;
+
+        // Dedupe matches by id.
+        const matchById = new Map<number, (typeof matchLists)[number][number]>();
+        for (const list of matchLists) {
+          for (const m of list) matchById.set(m.id, m);
+        }
+        const matches = [...matchById.values()];
+
+        // Resolve cargo request details for every match (fetch any we don't
+        // already have from this company's own requests).
+        const cargoById = new Map(cargo.map((cr) => [cr.id, cr]));
+        const missingIds = [
+          ...new Set(
+            matches
+              .map((m) => m.cargo_request_id)
+              .filter(
+                (cid): cid is number => cid != null && !cargoById.has(cid)
+              )
+          ),
+        ];
+        const fetched = await Promise.all(
+          missingIds.map((cid) => cargoRequests.get(cid))
+        );
+        if (cancelled) return;
+        for (const cr of fetched) cargoById.set(cr.id, cr);
+
+        const toOrderRequest = (
+          match: (typeof matches)[number]
+        ): OrderRequest => {
+          const cr =
+            match.cargo_request_id != null
+              ? cargoById.get(match.cargo_request_id)
+              : undefined;
+          const price =
+            match.agreed_price_rm != null
+              ? Number(match.agreed_price_rm)
+              : estimateBudgetRm(cr?.weight_kg);
+          return {
+            id: `MATCH-${match.id}`,
+            pickup: cr?.pickup_address ?? "Unknown pickup",
+            destination: cr?.dropoff_address ?? "Unknown destination",
+            price,
+            status: match.status ?? "pending",
+          };
+        };
+
+        // The Requests tab shows offers from logistics providers who want to
+        // carry my cargo (matches they initiated against my cargo requests).
+        const myCargoIds = new Set(cargo.map((cr) => cr.id));
+        const cargoOffers = matches.filter(
+          (m) =>
+            m.cargo_request_id != null &&
+            myCargoIds.has(m.cargo_request_id) &&
+            m.initiated_by === "logistics_provider"
         );
 
+        // Resolve who made each offer: the company owning the offering trip.
+        const offerTripIds = [
+          ...new Set(
+            cargoOffers
+              .map((m) => m.trip_listing_id)
+              .filter((tid): tid is number => tid != null)
+          ),
+        ];
+        const [offerTrips, comps] = await Promise.all([
+          Promise.all(offerTripIds.map((tid) => tripListings.get(tid))),
+          companies.list({ limit: 200 }),
+        ]);
+        if (cancelled) return;
+        const tripCompanyId = new Map(
+          offerTrips.map((t) => [t.id, t.company_id])
+        );
+        const companyName = new Map(comps.map((c) => [c.id, c.name]));
+
+        setRequests(
+          cargoOffers.map((m) => {
+            const cr =
+              m.cargo_request_id != null
+                ? cargoById.get(m.cargo_request_id)
+                : undefined;
+            const companyId =
+              m.trip_listing_id != null
+                ? tripCompanyId.get(m.trip_listing_id)
+                : undefined;
+            const offeredBy =
+              companyId != null
+                ? companyName.get(companyId) ?? `Company #${companyId}`
+                : "Unknown company";
+            const price =
+              m.agreed_price_rm != null
+                ? Number(m.agreed_price_rm)
+                : estimateBudgetRm(cr?.weight_kg);
+            return {
+              id: `MATCH-${m.id}`,
+              offeredBy,
+              pickup: cr?.pickup_address ?? "Unknown pickup",
+              destination: cr?.dropoff_address ?? "Unknown destination",
+              price,
+              status: m.status ?? "pending",
+            };
+          })
+        );
+
+        // Trip Listings tab: each trip with the pooling requests made on it.
         setTrips(
           listings.map((tl) => ({
             id: `TRIP-${tl.id}`,
@@ -73,7 +178,9 @@ export default function ActiveOrdersPage() {
             destination: tl.destination_region,
             dateTime: formatDateTime(tl.departure_window_start),
             status: tl.status,
-            poolingRequests: [],
+            poolingRequests: matches
+              .filter((m) => m.trip_listing_id === tl.id)
+              .map(toOrderRequest),
           }))
         );
       } catch (err) {
@@ -103,11 +210,27 @@ export default function ActiveOrdersPage() {
     setSelectedPoolRequest(req);
   };
 
+  const handleDeleteRequest = async (id: string) => {
+    // Card ids look like "CR-123"; the backend wants the raw numeric id.
+    const numericId = Number(id.replace(/^CR-/, ""));
+    if (Number.isNaN(numericId)) return;
+
+    const prev = requests;
+    setRequests((current) => current.filter((r) => r.id !== id));
+    try {
+      await cargoRequests.remove(numericId);
+    } catch {
+      // Restore the list if the backend rejected the deletion.
+      setRequests(prev);
+    }
+  };
+
   const handleCloseModal = () => {
     setSelectedTrip(null);
     setSelectedPoolRequest(null);
   };
 
+  console.log(requests, trips)
   return (
     <main className="min-h-screen bg-gray-50 p-8 flex flex-col items-center">
       <div className="w-full max-w-5xl flex flex-col gap-6">
@@ -152,7 +275,11 @@ export default function ActiveOrdersPage() {
               </p>
             )}
             {requests.map((req) => (
-              <RequestCard key={req.id} request={req} />
+              <RequestCard
+                key={req.id}
+                request={req}
+                onDelete={handleDeleteRequest}
+              />
             ))}
           </div>
         )}
