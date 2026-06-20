@@ -10,6 +10,8 @@ from app.routers import (
     cost_splits,
     trip_listings,
     vehicles,
+    device,
+    tracking_records,
 )
 
 # Allow your Next.js development server URL
@@ -33,6 +35,8 @@ app.include_router(trip_listings.router)
 app.include_router(cargo_matches.router)
 app.include_router(cost_splits.router)
 app.include_router(carbon_logs.router)
+app.include_router(device.router)
+app.include_router(tracking_records.router)
 
 
 @app.get("/health")
