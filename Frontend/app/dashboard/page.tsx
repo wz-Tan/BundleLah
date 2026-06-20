@@ -10,6 +10,7 @@ import {
 } from "@/app/services/listings";
 import { fetchDevicesByCargoMatch, fetchDeviceAlerts } from "@/app/services/device";
 import { getCurrentCompanyId } from "@/lib/session";
+import { PRICING } from "@/lib/pricing";
 import {
   METRICS,
   computeDashboardMetrics,
@@ -54,7 +55,7 @@ const money = (n: number) =>
 // Build the carbon calculation, one line per assigned drive plus the total.
 function carbonCalc(metrics: DashboardMetrics): CalcStep[] {
   const steps: CalcStep[] = metrics.deliveries.map((d) => ({
-    label: `Drive · cargo #${d.cargoRequestId} (${d.role})`,
+    label: `Drive · cargo #${d.cargoRequestId} · match #${d.matchId} (${d.role})`,
     formula: `distance × ${METRICS.TRUCK_CO2_KG_PER_KM} kg/km`,
     working: `${d.distanceKm} km × ${METRICS.TRUCK_CO2_KG_PER_KM} ≈ ${d.co2AvoidedKg} kg`,
   }));
@@ -69,6 +70,11 @@ function carbonCalc(metrics: DashboardMetrics): CalcStep[] {
     working: `${metrics.co2AvoidedKg} ÷ ${METRICS.CO2_KG_PER_TREE_YEAR} ≈ ${metrics.treesEquivalent} trees`,
   });
   steps.push({
+    label: "Carbon credits earned",
+    formula: `total ÷ ${METRICS.CO2_KG_PER_CREDIT} kg per credit (1 tonne)`,
+    working: `${metrics.co2AvoidedKg} ÷ ${METRICS.CO2_KG_PER_CREDIT} ≈ ${metrics.carbonCreditsEarned} credits`,
+  });
+  steps.push({
     label: "Monthly goal progress",
     formula: `total ÷ ${metrics.monthlyGoalKg} kg goal × 100`,
     working: `${metrics.co2AvoidedKg} ÷ ${metrics.monthlyGoalKg} × 100 ≈ ${metrics.goalProgressPct}%`,
@@ -81,20 +87,14 @@ function moneyCalc(metrics: DashboardMetrics): CalcStep[] {
   const steps: CalcStep[] = metrics.deliveries.map((d) =>
     d.role === "buyer"
       ? {
-          label: `Saved · cargo #${d.cargoRequestId} (buyer)`,
-          formula:
-            d.dedicatedCostRm >= d.pooledPriceRm
-              ? "est. dedicated cost − bundled price paid"
-              : "max(est. dedicated cost − bundled price, 0)",
-          working:
-            d.dedicatedCostRm >= d.pooledPriceRm
-              ? `${money(d.dedicatedCostRm)} − ${money(d.pooledPriceRm)} = ${money(d.moneyRm)}`
-              : `max(${money(d.dedicatedCostRm)} − ${money(d.pooledPriceRm)}, 0) = ${money(d.moneyRm)}`,
+          label: `Saved · cargo #${d.cargoRequestId} · match #${d.matchId} (buyer)`,
+          formula: `bundled price × ${Math.round(PRICING.BUYER_SAVINGS_RATE * 100)}% saved`,
+          working: `${money(d.pooledPriceRm)} × ${Math.round(PRICING.BUYER_SAVINGS_RATE * 100)}% ≈ ${money(d.moneyRm)}`,
         }
       : {
-          label: `Earned · cargo #${d.cargoRequestId} (driver)`,
-          formula: "agreed bundled price (spare-space revenue)",
-          working: `${money(d.pooledPriceRm)}`,
+          label: `Earned · cargo #${d.cargoRequestId} · match #${d.matchId} (driver)`,
+          formula: `bundled price × ${Math.round(PRICING.DRIVER_REVENUE_SHARE * 100)}% (${Math.round(PRICING.PLATFORM_FEE_RATE * 100)}% platform fee)`,
+          working: `${money(d.pooledPriceRm)} × ${Math.round(PRICING.DRIVER_REVENUE_SHARE * 100)}% ≈ ${money(d.moneyRm)}`,
         }
   );
   steps.push({
@@ -136,6 +136,7 @@ function buildPanels(
       detail: [
         { label: "Shared rides (own cargo)", value: `${metrics.co2FromSharedRidesKg} kg` },
         { label: "Carried for others", value: `${metrics.co2FromCarryingKg} kg` },
+        { label: "Carbon credits", value: `${metrics.carbonCreditsEarned}` },
         { label: "Trees equivalent", value: `${metrics.treesEquivalent}` },
         { label: "Monthly goal", value: `${metrics.monthlyGoalKg} kg` },
         { label: "Progress", value: `${metrics.goalProgressPct}%` },
@@ -463,7 +464,7 @@ export default function DashboardPage() {
         <div className="col-span-7 flex flex-col gap-4">
           <h2 className="text-xl font-semibold">Cargo Progress</h2>
           <div className="flex-1 min-h-196 rounded-xl border border-gray-200 overflow-hidden">
-            <CargoMap center={mapCenter} markers={orderMarkers} />
+            <CargoMap center={mapCenter} markers={orderMarkers} fitToMalaysia />
           </div>
         </div>
 
@@ -580,9 +581,9 @@ export default function DashboardPage() {
                     </span>
                   </h4>
                   <div className="mt-4 flex flex-col gap-3">
-                    {activePanel.calc.map((step) => (
+                    {activePanel.calc.map((step, i) => (
                       <div
-                        key={step.label}
+                        key={`${step.label}-${i}`}
                         className="rounded-2xl border border-gray-100 bg-white px-4 py-3 shadow-sm"
                       >
                         <p className="text-sm font-semibold text-gray-900">

@@ -15,6 +15,18 @@ export const PRICING = {
   PRIORITY_MULTIPLIER: 1.3,
   /** Recommended baseline price per kg offered on a trip (RM). */
   TRIP_RM_PER_KG: 0.55,
+  /**
+   * Share of the agreed listing price the driver keeps after the platform fee.
+   * The remaining 1 − DRIVER_REVENUE_SHARE is the platform's cut.
+   */
+  DRIVER_REVENUE_SHARE: 0.9,
+  /** Platform fee taken from each completed listing (1 − driver share). */
+  PLATFORM_FEE_RATE: 0.1,
+  /**
+   * What a cargo owner saves by bundling instead of a dedicated delivery,
+   * expressed as a fraction of the agreed bundled price.
+   */
+  BUYER_SAVINGS_RATE: 0.2,
 } as const;
 
 function round2(n: number): number {

@@ -6,7 +6,7 @@
 // =========================================================================
 
 import type { CargoMatch, CargoRequest, TripListing } from "@/type";
-import { haversineKm, recommendCargoPrice } from "@/lib/pricing";
+import { haversineKm, recommendCargoPrice, PRICING } from "@/lib/pricing";
 
 // -------------------------------------------------------------------------
 // Emission + reference constants (documented & defensible)
@@ -26,6 +26,8 @@ export const METRICS = {
   CO2_KG_PER_TREE_YEAR: 21,
   /** Monthly CO₂-avoided goal used for the progress bar (kg). */
   MONTHLY_CO2_GOAL_KG: 500,
+  /** Kilograms of CO₂ that make up one tradeable carbon credit (1 tonne). */
+  CO2_KG_PER_CREDIT: 1000,
 } as const;
 
 function round2(n: number): number {
@@ -75,6 +77,7 @@ export interface DashboardMetrics {
   co2FromSharedRidesKg: number; // buyer side (own cargo pooled)
   co2FromCarryingKg: number; // driver side (carried others' cargo)
   treesEquivalent: number;
+  carbonCreditsEarned: number; // tradeable credits = CO₂ avoided ÷ 1 tonne
   monthlyGoalKg: number;
   goalProgressPct: number;
   totalPooledDistanceKm: number;
@@ -145,14 +148,15 @@ export function computeDashboardMetrics(params: {
 
     const co2AvoidedKg = round2(distanceKm * METRICS.TRUCK_CO2_KG_PER_KM);
 
-    // A company can be both buyer and driver across different matches, but a
-    // single match is one or the other. Buyer side counts savings; driver side
-    // counts earnings. (If somehow both, prefer buyer to avoid double-count.)
+    // Money split per completed/assigned drive:
+    //  - Buyer (cargo owner) SAVES a fixed share of the bundled price by
+    //    bundling instead of running a dedicated delivery.
+    //  - Driver (carrier) EARNS the agreed price minus the platform fee.
     const role: "buyer" | "driver" = isBuyer ? "buyer" : "driver";
     const moneyRm =
       role === "buyer"
-        ? Math.max(round2(dedicatedCostRm - pooledPriceRm), 0)
-        : round2(pooledPriceRm);
+        ? round2(pooledPriceRm * PRICING.BUYER_SAVINGS_RATE)
+        : round2(pooledPriceRm * PRICING.DRIVER_REVENUE_SHARE);
 
     deliveries.push({
       matchId: m.id,
@@ -193,6 +197,8 @@ export function computeDashboardMetrics(params: {
     co2FromSharedRidesKg,
     co2FromCarryingKg,
     treesEquivalent: round2(co2AvoidedKg / METRICS.CO2_KG_PER_TREE_YEAR),
+    carbonCreditsEarned:
+      Math.round((co2AvoidedKg / METRICS.CO2_KG_PER_CREDIT) * 1000) / 1000,
     monthlyGoalKg: METRICS.MONTHLY_CO2_GOAL_KG,
     goalProgressPct: Math.min(
       100,
