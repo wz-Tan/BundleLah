@@ -8,23 +8,27 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 from ..db.database import Base
 
 if TYPE_CHECKING:
-    from .trip import Trip
+    from .cargo_match import CargoMatch
     from .company import Company
 
 
 class CostSplit(Base):
+    """Money owed from one company (payer) to another (payee) for a match."""
+
     __tablename__ = "cost_splits"
 
     id: Mapped[int] = mapped_column(primary_key=True)
-    trip_id: Mapped[Optional[int]] = mapped_column(
-        ForeignKey("trips.id", ondelete="CASCADE")
+    match_id: Mapped[Optional[int]] = mapped_column(
+        ForeignKey("cargo_matches.id", ondelete="CASCADE")
     )
-    company_id: Mapped[Optional[int]] = mapped_column(
-        ForeignKey("companies.id", ondelete="CASCADE")
+    payer_company_id: Mapped[Optional[int]] = mapped_column(
+        ForeignKey("companies.id")
+    )
+    payee_company_id: Mapped[Optional[int]] = mapped_column(
+        ForeignKey("companies.id")
     )
     amount_rm: Mapped[Optional[Decimal]] = mapped_column(Numeric(12, 2))
-    weight_share_pct: Mapped[Optional[Decimal]] = mapped_column(Numeric(5, 2))
-    route_share_pct: Mapped[Optional[Decimal]] = mapped_column(Numeric(5, 2))
+    platform_fee_rm: Mapped[Optional[Decimal]] = mapped_column(Numeric(12, 2))
     payment_status: Mapped[Optional[str]] = mapped_column(
         String(20), default="pending"
     )
@@ -37,5 +41,12 @@ class CostSplit(Base):
         ),
     )
 
-    trip: Mapped[Optional["Trip"]] = relationship(back_populates="cost_splits")
-    company: Mapped[Optional["Company"]] = relationship(back_populates="cost_splits")
+    match: Mapped[Optional["CargoMatch"]] = relationship(back_populates="cost_splits")
+    payer: Mapped[Optional["Company"]] = relationship(
+        back_populates="cost_splits_as_payer",
+        foreign_keys=[payer_company_id],
+    )
+    payee: Mapped[Optional["Company"]] = relationship(
+        back_populates="cost_splits_as_payee",
+        foreign_keys=[payee_company_id],
+    )

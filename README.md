@@ -1,4 +1,4 @@
-# BundleLah — Backend
+# BundleLah
 
 > Shared freight, shared cost. A B2B platform that lets companies bundle cargo onto the same road trip, split the bill fairly, and cut wasted truck space.
 
@@ -35,7 +35,7 @@ The first company to post a route is the **initiator**. Any company shipping in 
 | **Company** | A registered business account (verified by SSM number) that posts cargo and joins trips. |
 | **Driver** | A vehicle + operator belonging to a company, with a max payload and a performance tier badge. |
 | **Order** | A request to move goods from a supplier address to a drop-off address, with weight, volume, and a pickup time window. |
-| **Trip** | A scheduled route operated by one driver. It bundles multiple orders, tracks remaining capacity, distance, and load factor. |
+| **Trip** | A scheduled route posted by an initiator company and operated by one driver. It carries an origin → destination, departure time, total and remaining weight/volume capacity, and bundles multiple orders. |
 | **Cost Split** | Each company's fair share of a trip's cost, computed from weight share and route (detour) share. |
 | **Carbon Log** | CO₂ emitted vs. CO₂ avoided for a trip, plus green credits awarded for bundling. |
 
@@ -80,7 +80,7 @@ The first company to post a route is the **initiator**. Any company shipping in 
 
 ## Tech Stack
 
-### Backend (this folder)
+### Backend (`fastapi-backend/`)
 | Layer | Technology |
 | --- | --- |
 | Language | Python 3.11+ |
@@ -90,7 +90,7 @@ The first company to post a route is the **initiator**. Any company shipping in 
 | Validation / settings | Pydantic + `pydantic-settings` |
 | Database | SQLite for dev (`database.db`); any SQLAlchemy-supported DB (e.g. PostgreSQL) in prod via `DATABASE_URI` |
 
-### Frontend (`../Frontend`)
+### Frontend (`Frontend/`)
 | Layer | Technology |
 | --- | --- |
 | Framework | Next.js 16 (App Router) |
@@ -131,18 +131,21 @@ fastapi-backend/
 
 ## Data Model
 
+> 📊 See [`docs/DATA_MODEL.md`](docs/DATA_MODEL.md) for full ER and flow diagrams (rendered Mermaid).
+
 ```
 Company 1───* Driver 1───* Trip *───1 Driver
    │                          │
-   ├───* Order                ├───* CostSplit *───1 Company
-   │                          └───* CarbonLog
+   │  initiates               ├───* Order *───1 Company
+   ├───* Trip                 ├───* CostSplit *───1 Company
+   ├───* Order                └───* CarbonLog
    └───* CostSplit
 ```
 
-- **Company** → has many drivers, orders, and cost splits.
+- **Company** → has many drivers, orders, and cost splits, and **initiates** many trips (the company that posts a route).
 - **Driver** → belongs to a company, operates many trips (constrained by `max_payload_kg`).
-- **Order** → belongs to a company; geocoded pickup/drop-off with weight, volume, and time window.
-- **Trip** → operated by a driver; holds the route, distance, load factor, and bundles cost splits + carbon logs.
+- **Order** → belongs to a company; geocoded pickup/drop-off with weight, volume, and time window. Optionally **joins a Trip** (`trip_id`) — null while still looking for a ride.
+- **Trip** → posted by an initiator company and operated by a driver; carries origin/destination, departure time, and total vs. **remaining available** weight/volume capacity. Bundles orders, cost splits, and carbon logs.
 - **CostSplit** → one row per company sharing a trip; stores the weight/route share and payment status.
 - **CarbonLog** → CO₂ emitted/avoided and credits awarded per trip.
 
