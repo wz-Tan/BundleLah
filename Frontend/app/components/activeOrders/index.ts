@@ -2,6 +2,7 @@ export { ActiveOrdersTabs } from "./ActiveOrdersTabs";
 export { RequestCard } from "./RequestCard";
 export { TripListingCard } from "./TripListingCard";
 export { PoolingModal } from "./PoolingModal";
+export { TrackingModal } from "./TrackingModal";
 export {
   formatDateTime,
   isPositiveStatus,
