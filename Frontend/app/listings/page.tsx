@@ -58,12 +58,17 @@ export default function CargoRequestsPage() {
         pickup_window_start: req.pickup_window_start,
         pickup_window_end: req.pickup_window_end,
         priority_flag: req.priority_flag,
+        temp_threshold_c: req.monitoring?.temperature_c ?? null,
+        humidity_threshold_pct: req.monitoring?.humidity_pct ?? null,
+        ethylene_threshold_ppm: req.monitoring?.ethylene_ppm ?? null,
+        motion_required: req.monitoring?.motion ?? false,
       });
       const item = toCargoRequestItem(
         created,
         company?.name ?? `Company #${companyId}`
       );
       if (req.budget_rm && req.budget_rm > 0) item.suggested_budget_rm = req.budget_rm;
+      if (req.monitoring) item.monitoring = req.monitoring;
       setRequests((prev) => [item, ...prev]);
       setMyIds((prev) => new Set(prev).add(created.id));
       setShowCreate(false);

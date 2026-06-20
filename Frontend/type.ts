@@ -25,6 +25,19 @@ export type InitiatedBy =
   | "logistics_provider" 
   | "cargo_owner";
 
+/**
+ * Cold-chain / safety monitoring a shipper requires for their cargo.
+ * A field set to a number means that sensor is required with the given
+ * threshold; `undefined`/`null` means it isn't required. `motion` is a plain
+ * on/off detection flag (no threshold value).
+ */
+export interface MonitoringRequirements {
+  temperature_c?: number | null;
+  humidity_pct?: number | null;
+  ethylene_ppm?: number | null;
+  motion?: boolean;
+}
+
 export type PaymentStatus =
   | "paid"
   | "pending";
@@ -80,8 +93,17 @@ export interface CargoRequest {
   priority_flag: boolean;
   created_at: string;
 
+  /** Backend monitoring columns (flat). Threshold null = sensor not required. */
+  temp_threshold_c?: number | null;
+  humidity_threshold_pct?: number | null;
+  ethylene_threshold_ppm?: number | null;
+  motion_required?: boolean;
+
   /** Budget the requester is willing to pay (RM). Frontend pricing field. */
   budget_rm?: number;
+
+  /** Cold-chain / safety monitoring the shipper requires. Frontend field. */
+  monitoring?: MonitoringRequirements;
 }
 
 export interface TripListing {
@@ -193,6 +215,7 @@ export interface GetCargoRequestItem {
   };
   priority_flag: boolean;
   suggested_budget_rm: number;
+  monitoring?: MonitoringRequirements;
 }
 
 export interface GetCargoRequestsResponse {

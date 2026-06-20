@@ -123,6 +123,10 @@ export interface CargoRequestCreatePayload {
   pickup_window_start?: string;
   pickup_window_end?: string;
   priority_flag?: boolean;
+  temp_threshold_c?: number | null;
+  humidity_threshold_pct?: number | null;
+  ethylene_threshold_ppm?: number | null;
+  motion_required?: boolean;
 }
 
 export interface TripListingCreatePayload {
@@ -301,6 +305,11 @@ export function toCargoRequestItem(
   cr: CargoRequest,
   companyName: string
 ): GetCargoRequestItem {
+  const hasMonitoring =
+    cr.temp_threshold_c != null ||
+    cr.humidity_threshold_pct != null ||
+    cr.ethylene_threshold_ppm != null ||
+    cr.motion_required === true;
   return {
     id: cr.id,
     sender_company: companyName,
@@ -321,6 +330,14 @@ export function toCargoRequestItem(
     },
     priority_flag: cr.priority_flag,
     suggested_budget_rm: estimateBudgetRm(cr.weight_kg),
+    monitoring: hasMonitoring
+      ? {
+          temperature_c: cr.temp_threshold_c ?? null,
+          humidity_pct: cr.humidity_threshold_pct ?? null,
+          ethylene_ppm: cr.ethylene_threshold_ppm ?? null,
+          motion: cr.motion_required ?? false,
+        }
+      : undefined,
   };
 }
 

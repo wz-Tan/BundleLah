@@ -201,6 +201,41 @@ export function OrderDetail({
             </p>
           </div>
 
+          {order.monitoring &&
+            (order.monitoring.temperature_c != null ||
+              order.monitoring.humidity_pct != null ||
+              order.monitoring.ethylene_ppm != null ||
+              order.monitoring.motion) && (
+              <div>
+                <p className="text-[10px] uppercase tracking-widest text-zinc-400 font-semibold mb-2">
+                  Monitoring requirements
+                </p>
+                <div className="flex flex-col gap-2">
+                  {order.monitoring.temperature_c != null && (
+                    <MonitoringRow
+                      label="Temperature"
+                      value={`≤ ${order.monitoring.temperature_c} °C`}
+                    />
+                  )}
+                  {order.monitoring.humidity_pct != null && (
+                    <MonitoringRow
+                      label="Humidity"
+                      value={`≤ ${order.monitoring.humidity_pct} %`}
+                    />
+                  )}
+                  {order.monitoring.ethylene_ppm != null && (
+                    <MonitoringRow
+                      label="Ethylene gas"
+                      value={`≤ ${order.monitoring.ethylene_ppm} ppm`}
+                    />
+                  )}
+                  {order.monitoring.motion && (
+                    <MonitoringRow label="Motion sensor" value="Required" />
+                  )}
+                </div>
+              </div>
+            )}
+
           <div>
             <p className="text-[10px] uppercase tracking-widest text-zinc-400 font-semibold mb-2">
               Assign one of your trips
@@ -267,6 +302,20 @@ export function OrderDetail({
           )}
         </div>
       </div>
+    </div>
+  );
+}
+
+function MonitoringRow({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="flex items-center justify-between rounded-lg bg-zinc-50 px-3 py-2">
+      <span className="flex items-center gap-2 text-sm text-zinc-700">
+        <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
+        {label}
+      </span>
+      <span className="text-sm font-semibold text-zinc-800 tabular-nums">
+        {value}
+      </span>
     </div>
   );
 }
