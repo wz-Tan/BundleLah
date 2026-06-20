@@ -10,11 +10,12 @@ import {
 import {
   cargoRequests,
   cargoMatches,
+  tripListings,
   companies,
   buildCompanyNameMap,
   toCargoRequestItem,
 } from "@/lib/api";
-import { getStoredCompany } from "@/lib/session";
+import { getCurrentCompanyId, getStoredCompany } from "@/lib/session";
 import { useEffect, useState } from "react";
 
 const PRIORITY_FILTERS = [
@@ -31,6 +32,10 @@ export default function CargoRequestsPage() {
   const [selected, setSelected] = useState<GetCargoRequestItem | null>(null);
   const [showCreate, setShowCreate] = useState(false);
   const [requests, setRequests] = useState<GetCargoRequestItem[]>([]);
+  // order id -> match id for offers this company has already sent.
+  const [requestedMatches, setRequestedMatches] = useState<Map<number, number>>(
+    new Map()
+  );
   const [submitError, setSubmitError] = useState<string | null>(null);
 
   async function handleCreate(req: CargoRequest) {
@@ -257,6 +262,7 @@ export default function CargoRequestsPage() {
                 key={order.id}
                 order={order}
                 onSelect={setSelected}
+                requested={requestedMatches.has(order.id)}
               />
             ))}
           </div>
