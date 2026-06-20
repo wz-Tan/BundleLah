@@ -1,11 +1,12 @@
 "use client";
 
+import type { GetCargoRequestItem, CargoRequest } from "@/type";
 import {
+  CreateCargoRequestModal,
   ListingModeTabs,
   OrderCard,
   OrderDetail,
 } from "@/app/components/listings";
-import type { GetCargoRequestItem } from "@/type";
 import {
   cargoRequests,
   companies,
@@ -26,6 +27,12 @@ export default function CargoRequestsPage() {
   const [search, setSearch] = useState("");
   const [priorityFilter, setPriorityFilter] = useState<PriorityFilter>("all");
   const [selected, setSelected] = useState<GetCargoRequestItem | null>(null);
+  const [showCreate, setShowCreate] = useState(false);
+
+  function handleCreate(req: CargoRequest) {
+    console.log("New cargo request:", req);
+    setShowCreate(false);
+  }
 
   const [requests, setRequests] = useState<GetCargoRequestItem[]>([]);
   const [loading, setLoading] = useState(true);
@@ -106,6 +113,13 @@ export default function CargoRequestsPage() {
           </div>
         </div>
 
+        <button
+          onClick={() => setShowCreate(true)}
+          className="mb-6 self-start h-10 px-4 rounded-full bg-zinc-900 dark:bg-zinc-50 text-white dark:text-zinc-900 text-sm font-semibold hover:bg-zinc-700 dark:hover:bg-zinc-200 transition-colors"
+        >
+          + New request
+        </button>
+
         <ListingModeTabs />
 
         <div className="relative mb-4">
@@ -178,6 +192,13 @@ export default function CargoRequestsPage() {
 
       {selected && (
         <OrderDetail order={selected} onClose={() => setSelected(null)} />
+      )}
+
+      {showCreate && (
+        <CreateCargoRequestModal
+          onClose={() => setShowCreate(false)}
+          onSubmit={handleCreate}
+        />
       )}
     </div>
   );

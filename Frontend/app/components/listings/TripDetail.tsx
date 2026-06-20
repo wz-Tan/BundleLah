@@ -22,7 +22,6 @@ export function TripDetail({
         ["Available weight", `${trip.available_capacity.weight_kg} kg`],
         ["Available volume", `${trip.available_capacity.volume_m3} m³`],
         ["Departure", formatTripDate(trip.departure_window_start)],
-        ["Price/kg", `RM ${trip.estimated_price_per_kg_rm.toFixed(2)}`],
     ];
 
     return (
@@ -102,9 +101,6 @@ export function TripDetail({
                         <div>
                             <p className="mb-0.5 text-[10px] font-bold uppercase tracking-widest text-emerald-700 dark:text-emerald-300">
                                 Estimated Price
-                            </p>
-                            <p className="text-2xl font-bold text-zinc-900 tabular-nums dark:text-zinc-50">
-                                RM {trip.estimated_price_per_kg_rm.toFixed(2)}
                             </p>
                         </div>
                         <span className="text-xs font-bold uppercase tracking-widest text-emerald-700 dark:text-emerald-300">

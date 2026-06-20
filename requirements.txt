@@ -4,6 +4,9 @@ pydantic
 pydantic-settings
 sqlalchemy
 
+# Postgres driver (use the binary wheel to avoid source builds / pg_config errors)
+psycopg2-binary
+
 # Auth
 pyjwt
 argon2-cffi

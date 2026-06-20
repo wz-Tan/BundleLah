@@ -3,7 +3,7 @@
 import { useState } from "react";
 import type { CargoRequest } from "@/type";
 
-interface CreateFormState {
+interface CargoRequestFormState {
   pickup_address: string;
   dropoff_address: string;
   weight_kg: string;
@@ -13,7 +13,7 @@ interface CreateFormState {
   priority_flag: boolean;
 }
 
-type CreateTextField = Exclude<keyof CreateFormState, "priority_flag">;
+type CargoRequestTextField = Exclude<keyof CargoRequestFormState, "priority_flag">;
 
 function TextField({
   label,
@@ -25,12 +25,12 @@ function TextField({
   onChange,
 }: {
   label: string;
-  field: CreateTextField;
+  field: CargoRequestTextField;
   value: string;
   error?: string;
   type?: string;
   placeholder?: string;
-  onChange: (field: CreateTextField, value: string) => void;
+  onChange: (field: CargoRequestTextField, value: string) => void;
 }) {
   return (
     <div className="flex flex-col gap-1">
@@ -51,14 +51,14 @@ function TextField({
   );
 }
 
-export function CreateOrderModal({
+export function CreateCargoRequestModal({
   onClose,
   onSubmit,
 }: {
   onClose: () => void;
   onSubmit: (req: CargoRequest) => void;
 }) {
-  const [form, setForm] = useState<CreateFormState>({
+  const [form, setForm] = useState<CargoRequestFormState>({
     pickup_address: "",
     dropoff_address: "",
     weight_kg: "",
@@ -67,10 +67,10 @@ export function CreateOrderModal({
     pickup_window_end: "",
     priority_flag: false,
   });
-  const [errors, setErrors] = useState<Partial<Record<keyof CreateFormState, string>>>({});
+  const [errors, setErrors] = useState<Partial<Record<keyof CargoRequestFormState, string>>>({});
 
-  function validate(): Partial<Record<keyof CreateFormState, string>> {
-    const e: Partial<Record<keyof CreateFormState, string>> = {};
+  function validate(): Partial<Record<keyof CargoRequestFormState, string>> {
+    const e: Partial<Record<keyof CargoRequestFormState, string>> = {};
     if (!form.pickup_address.trim()) e.pickup_address = "Pickup address is required.";
     if (!form.dropoff_address.trim())  e.dropoff_address  = "Dropoff address is required.";
     if (!form.weight_kg || isNaN(Number(form.weight_kg)) || Number(form.weight_kg) <= 0)
@@ -113,7 +113,7 @@ export function CreateOrderModal({
     onSubmit(req);
   }
 
-  function setField<K extends keyof CreateFormState>(key: K, value: CreateFormState[K]) {
+  function setField<K extends keyof CargoRequestFormState>(key: K, value: CargoRequestFormState[K]) {
     setForm(f => ({ ...f, [key]: value }));
     setErrors(er => { const c = { ...er }; delete c[key]; return c; });
   }
@@ -126,10 +126,10 @@ export function CreateOrderModal({
         <div className="flex items-center justify-between px-6 py-4 border-b border-black/[.06] dark:border-white/[.08]">
           <div>
             <p className="text-[10px] uppercase tracking-widest text-amber-500 font-bold mb-0.5">
-              New Shipment
+              Cargo Pooling
             </p>
             <h2 className="text-lg font-semibold text-zinc-900 dark:text-zinc-50">
-              Place an Order
+              Request a pool
             </h2>
           </div>
           <button
