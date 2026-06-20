@@ -1,0 +1,6 @@
+# FastAPI backend
+fastapi
+.venv
+.env
+node_modules
+__pycache__
