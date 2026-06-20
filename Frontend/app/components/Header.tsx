@@ -8,8 +8,8 @@ import { usePathname, useRouter } from "next/navigation";
 const NAV_LINKS = [
   { href: "/dashboard", label: "Dashboard" },
   { href: "/listings", label: "Listings" },
-  { href: "/profile", label: "Profile" },
   { href: "/activeOrders", label: "Your Orders" },
+  { href: "/profile", label: "Profile" },
 ];
 
 export default function Header() {

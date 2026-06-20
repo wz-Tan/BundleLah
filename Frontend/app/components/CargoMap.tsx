@@ -1,7 +1,8 @@
 "use client";
 
 import { GOOGLE_MAPS_API_KEY, useGoogleMaps } from "@/lib/googleMaps";
-import { GoogleMap, Marker } from "@react-google-maps/api";
+import { GoogleMap, InfoWindow, Marker } from "@react-google-maps/api";
+import { useState } from "react";
 
 // container style needs explicit height since flex-1 alone won't size the map
 const mapContainerStyle = {
@@ -15,86 +16,13 @@ const defaultCenter = {
   lng: 103.8198,
 };
 
-interface CargoMarker {
+export interface CargoMarker {
   id: string;
   orderId: string;
   lat: number;
   lng: number;
   label?: string;
 }
-
-const sampleMarkers: CargoMarker[] = [
-  {
-    id: "m-001",
-    orderId: "ORD-1001",
-    lat: 1.3521,
-    lng: 103.8198,
-    label: "Order #ORD-1001 — Pickup, Jurong East",
-  },
-  {
-    id: "m-002",
-    orderId: "ORD-1002",
-    lat: 1.3036,
-    lng: 103.8318,
-    label: "Order #ORD-1002 — Dropoff, Tanjong Pagar",
-  },
-  {
-    id: "m-003",
-    orderId: "ORD-1003",
-    lat: 1.3496,
-    lng: 103.9568,
-    label: "Order #ORD-1003 — Pickup, Tampines",
-  },
-  {
-    id: "m-004",
-    orderId: "ORD-1004",
-    lat: 1.4382,
-    lng: 103.7891,
-    label: "Order #ORD-1004 — Dropoff, Woodlands",
-  },
-  {
-    id: "m-005",
-    orderId: "ORD-1005",
-    lat: 1.3329,
-    lng: 103.7436,
-    label: "Order #ORD-1005 — Pickup, Jurong West",
-  },
-  {
-    id: "m-006",
-    orderId: "ORD-1006",
-    lat: 1.3644,
-    lng: 103.9915,
-    label: "Order #ORD-1006 — Dropoff, Changi",
-  },
-  {
-    id: "m-007",
-    orderId: "ORD-1007",
-    lat: 1.2966,
-    lng: 103.852,
-    label: "Order #ORD-1007 — In Transit, Marina Bay",
-  },
-  {
-    id: "m-008",
-    orderId: "ORD-1008",
-    lat: 1.3151,
-    lng: 103.7644,
-    label: "Order #ORD-1008 — Pickup, Clementi",
-  },
-  {
-    id: "m-009",
-    orderId: "ORD-1009",
-    lat: 1.3868,
-    lng: 103.7479,
-    label: "Order #ORD-1009 — Dropoff, Bukit Panjang",
-  },
-  {
-    id: "m-010",
-    orderId: "ORD-1010",
-    lat: 1.3691,
-    lng: 103.8454,
-    label: "Order #ORD-1010 — Pickup, Bishan",
-  },
-];
 
 interface CargoMapProps {
   center?: { lat: number; lng: number };
@@ -103,9 +31,10 @@ interface CargoMapProps {
 
 export function CargoMap({
   center = defaultCenter,
-  markers = sampleMarkers,
+  markers = [],
 }: CargoMapProps) {
   const { isLoaded } = useGoogleMaps();
+  const [activeMarker, setActiveMarker] = useState<string | null>(null);
 
   if (!isLoaded) {
     return (
@@ -126,8 +55,23 @@ export function CargoMap({
         <Marker
           key={m.id}
           position={{ lat: m.lat, lng: m.lng }}
-          title={m.label}
-        />
+          label={{
+            text: m.orderId.replace("ORD-", ""),
+            color: "#ffffff",
+            fontSize: "10px",
+            fontWeight: "bold",
+          }}
+          onClick={() => setActiveMarker(m.id)}
+        >
+          {activeMarker === m.id && (
+            <InfoWindow onCloseClick={() => setActiveMarker(null)}>
+              <div className="text-xs text-gray-800">
+                <p className="font-semibold">{m.orderId}</p>
+                <p>{m.label}</p>
+              </div>
+            </InfoWindow>
+          )}
+        </Marker>
       ))}
     </GoogleMap>
   );
