@@ -6,6 +6,7 @@ import type { GetCargoRequestItem, TripListing } from "@/type";
 import { tripListings } from "@/lib/api";
 import { getCurrentCompanyId } from "@/lib/session";
 import { formatDate } from "./listingUtils";
+import { DetourRouteMap } from "./DetourRouteMap";
 
 type PoolStatus = "idle" | "loading" | "success" | "error";
 
@@ -41,6 +42,11 @@ export function OrderDetail({
   const [cancelling, setCancelling] = useState(false);
 
   const alreadyRequested = matchId !== null;
+
+  const selectedTrip =
+    selectedTripId !== null
+      ? trips.find((t) => t.id === selectedTripId) ?? null
+      : null;
 
   useEffect(() => {
     const companyId = getCurrentCompanyId();
@@ -170,6 +176,61 @@ export function OrderDetail({
                   <p className="text-sm font-medium text-zinc-800">{order.dropoff.address}</p>
                 </div>
               </div>
+            </div>
+
+            <div className="mt-3">
+              <DetourRouteMap
+                origin={
+                  selectedTrip
+                    ? { address: selectedTrip.origin_region }
+                    : {
+                        address: order.pickup.address,
+                        lat: order.pickup.lat,
+                        lng: order.pickup.lng,
+                      }
+                }
+                destination={
+                  selectedTrip
+                    ? { address: selectedTrip.destination_region }
+                    : {
+                        address: order.dropoff.address,
+                        lat: order.dropoff.lat,
+                        lng: order.dropoff.lng,
+                      }
+                }
+                waypoints={
+                  selectedTrip
+                    ? [
+                        {
+                          address: order.pickup.address,
+                          lat: order.pickup.lat,
+                          lng: order.pickup.lng,
+                        },
+                        {
+                          address: order.dropoff.address,
+                          lat: order.dropoff.lat,
+                          lng: order.dropoff.lng,
+                        },
+                      ]
+                    : []
+                }
+              />
+              {selectedTrip ? (
+                <p className="mt-1.5 text-[11px] text-zinc-500">
+                  Detour:{" "}
+                  <span className="font-medium text-zinc-700">
+                    {selectedTrip.origin_region}
+                  </span>{" "}
+                  → {order.pickup.address} → {order.dropoff.address} →{" "}
+                  <span className="font-medium text-zinc-700">
+                    {selectedTrip.destination_region}
+                  </span>
+                </p>
+              ) : (
+                <p className="mt-1.5 text-[11px] text-zinc-400">
+                  Select one of your trips below to preview the detour.
+                </p>
+              )}
             </div>
           </div>
 

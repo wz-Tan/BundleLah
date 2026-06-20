@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 import { cargoRequests } from "@/lib/api";
 import { getCurrentCompanyId } from "@/lib/session";
 import { TripStatusBadge } from "./StatusBadge";
+import { DetourRouteMap } from "./DetourRouteMap";
 
 type PoolStatus = "idle" | "loading" | "success" | "error";
 
@@ -54,6 +55,11 @@ export function TripDetail({
     const [cancelling, setCancelling] = useState(false);
 
     const alreadyRequested = matchId !== null;
+
+    const selectedRequest =
+        selectedRequestId !== null
+            ? requests.find((r) => r.id === selectedRequestId) ?? null
+            : null;
 
     useEffect(() => {
         const companyId = getCurrentCompanyId();
@@ -186,6 +192,45 @@ export function TripDetail({
                                     </p>
                                 </div>
                             </div>
+                        </div>
+
+                        <div className="mt-3">
+                            <DetourRouteMap
+                                origin={{ address: trip.origin_region }}
+                                destination={{ address: trip.destination_region }}
+                                waypoints={
+                                    selectedRequest
+                                        ? [
+                                              {
+                                                  address: selectedRequest.pickup_address,
+                                                  lat: selectedRequest.pickup_lat,
+                                                  lng: selectedRequest.pickup_lng,
+                                              },
+                                              {
+                                                  address: selectedRequest.dropoff_address,
+                                                  lat: selectedRequest.dropoff_lat,
+                                                  lng: selectedRequest.dropoff_lng,
+                                              },
+                                          ]
+                                        : []
+                                }
+                            />
+                            {selectedRequest ? (
+                                <p className="mt-1.5 text-[11px] text-zinc-500">
+                                    Detour via{" "}
+                                    <span className="font-medium text-zinc-700">
+                                        {selectedRequest.pickup_address}
+                                    </span>{" "}
+                                    →{" "}
+                                    <span className="font-medium text-zinc-700">
+                                        {selectedRequest.dropoff_address}
+                                    </span>
+                                </p>
+                            ) : (
+                                <p className="mt-1.5 text-[11px] text-zinc-400">
+                                    Select a cargo request below to preview the detour.
+                                </p>
+                            )}
                         </div>
                     </div>
 
