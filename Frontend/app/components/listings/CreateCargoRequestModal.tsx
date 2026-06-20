@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import type { CargoRequest, MonitoringRequirements } from "@/type";
 import { LocationPicker, type LocationValue } from "./LocationPicker";
 import { recommendCargoPrice, prioritySurchargeRm, haversineKm } from "@/lib/pricing";
@@ -99,8 +99,10 @@ export function CreateCargoRequestModal({
   const [monitorErrors, setMonitorErrors] = useState<
     Partial<Record<ThresholdSensor, string>>
   >({});
-  // Tracks whether the user has manually overridden the recommended price.
-  const [priceEdited, setPriceEdited] = useState(false);
+  // Calculation animation state (only runs after the Calculate button).
+  const [computing, setComputing] = useState(false);
+  const [calculated, setCalculated] = useState(false);
+  const computeTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const distanceKm = useMemo(() => {
     if (
@@ -132,12 +134,34 @@ export function CreateCargoRequestModal({
     [weightNum, distanceKm]
   );
 
-  // Displayed price: the user's override if edited, otherwise the recommendation.
-  const priceValue = priceEdited
-    ? form.budget_rm
-    : recommendedPrice > 0
-      ? String(recommendedPrice)
-      : "";
+  // Invalidate a previous calculation whenever the price inputs change, so the
+  // shown recommendation can never be stale.
+  useEffect(() => {
+    setCalculated(false);
+    setComputing(false);
+    if (computeTimer.current) clearTimeout(computeTimer.current);
+  }, [weightNum, distanceKm, form.priority_flag]);
+
+  // Run the animated price calculation and fill the budget field on completion.
+  function handleCalculate() {
+    if (recommendedPrice <= 0 || computing) return;
+    setErrors((er) => {
+      const c = { ...er };
+      delete c.budget_rm;
+      return c;
+    });
+    setComputing(true);
+    setCalculated(false);
+    if (computeTimer.current) clearTimeout(computeTimer.current);
+    computeTimer.current = setTimeout(() => {
+      setForm((f) => ({ ...f, budget_rm: recommendedPrice.toFixed(2) }));
+      setComputing(false);
+      setCalculated(true);
+    }, 1600);
+  }
+
+  // The budget is whatever is in the field — empty until typed or calculated.
+  const priceValue = form.budget_rm;
 
   // Monitoring sensor config (label + unit + input hints) for the UI.
   const THRESHOLD_SENSORS: {
@@ -350,6 +374,152 @@ export function CreateCargoRequestModal({
             </div>
           </label>
 
+          {/* Budget — empty by default; press Calculate to compute a price */}
+          <div className="flex flex-col gap-1.5">
+            <label className="text-xs font-semibold uppercase tracking-widest text-zinc-500">
+              Budget (RM)
+            </label>
+
+            <div className="flex gap-2">
+              <div className="relative flex-1">
+                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-zinc-400">
+                  RM
+                </span>
+                <input
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  value={priceValue}
+                  placeholder="0.00"
+                  disabled={computing}
+                  onChange={(e) => {
+                    setCalculated(false);
+                    setForm((f) => ({ ...f, budget_rm: e.target.value }));
+                    setErrors((er) => {
+                      const c = { ...er };
+                      delete c.budget_rm;
+                      return c;
+                    });
+                  }}
+                  className={`h-10 w-full rounded-lg border border-solid pl-10 pr-3 text-sm bg-zinc-50 text-zinc-900 placeholder:text-zinc-400 outline-none transition-colors disabled:opacity-60 ${
+                    computing
+                      ? "border-amber-400 ring-2 ring-amber-200"
+                      : errors.budget_rm
+                        ? "border-red-400"
+                        : "border-black/[.08] focus:border-amber-400"
+                  }`}
+                />
+              </div>
+              <button
+                type="button"
+                onClick={handleCalculate}
+                disabled={recommendedPrice <= 0 || computing}
+                className="shrink-0 h-10 px-4 rounded-lg bg-amber-500 text-white text-sm font-semibold hover:bg-amber-400 transition-colors disabled:opacity-40 disabled:cursor-not-allowed inline-flex items-center gap-2"
+              >
+                {computing ? (
+                  <>
+                    <span className="inline-block h-3.5 w-3.5 animate-spin rounded-full border-2 border-white/40 border-t-white" />
+                    Calculating
+                  </>
+                ) : (
+                  "Calculate"
+                )}
+              </button>
+            </div>
+
+            {errors.budget_rm && (
+              <p className="text-[11px] text-red-500">{errors.budget_rm}</p>
+            )}
+
+            {/* Fancy calculation breakdown — only after Calculate is pressed */}
+            {computing && (
+              <div className="mt-1 rounded-xl border border-solid border-amber-200 bg-gradient-to-br from-amber-50 to-white p-3 overflow-hidden">
+                <div className="flex items-center gap-2 mb-2.5">
+                  <span className="relative flex h-4 w-4">
+                    <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-amber-400 opacity-60" />
+                    <span className="relative inline-flex h-4 w-4 animate-spin rounded-full border-2 border-amber-300 border-t-amber-600" />
+                  </span>
+                  <span className="text-xs font-semibold text-amber-700">
+                    Computing optimal price…
+                  </span>
+                </div>
+                <ul className="space-y-1.5 text-[11px] text-zinc-600">
+                  <li
+                    className="price-step flex justify-between"
+                    style={{ animationDelay: "0ms" }}
+                  >
+                    <span>Route distance</span>
+                    <span className="font-medium tabular-nums">
+                      {distanceKm.toFixed(1)} km
+                    </span>
+                  </li>
+                  <li
+                    className="price-step flex justify-between"
+                    style={{ animationDelay: "150ms" }}
+                  >
+                    <span>Cargo weight</span>
+                    <span className="font-medium tabular-nums">
+                      {weightNum} kg
+                    </span>
+                  </li>
+                  <li
+                    className="price-step flex justify-between"
+                    style={{ animationDelay: "300ms" }}
+                  >
+                    <span>Base rate</span>
+                    <span className="font-medium text-emerald-600">applied</span>
+                  </li>
+                  {form.priority_flag && surcharge > 0 && (
+                    <li
+                      className="price-step flex justify-between text-amber-700"
+                      style={{ animationDelay: "450ms" }}
+                    >
+                      <span>Priority surcharge</span>
+                      <span className="font-medium tabular-nums">
+                        +RM {surcharge.toFixed(2)}
+                      </span>
+                    </li>
+                  )}
+                </ul>
+                <div className="mt-2.5 relative h-1.5 overflow-hidden rounded-full bg-amber-100">
+                  <span className="price-calc-bar absolute inset-y-0 left-0 w-1/3 rounded-full bg-gradient-to-r from-amber-300 to-amber-500" />
+                </div>
+              </div>
+            )}
+
+            {/* Resolved recommendation summary */}
+            {!computing && calculated && recommendedPrice > 0 && (
+              <div className="price-pop mt-1 flex items-center gap-2 rounded-lg border border-solid border-emerald-200 bg-emerald-50/70 px-3 py-2">
+                <span className="text-emerald-600 text-sm">✓</span>
+                <p className="text-[11px] text-zinc-600">
+                  Recommended{" "}
+                  <span className="font-semibold text-zinc-800">
+                    RM {recommendedPrice.toFixed(2)}
+                  </span>
+                  {distanceKm > 0 && <> · {distanceKm.toFixed(1)} km</>}
+                  {form.priority_flag && surcharge > 0 && (
+                    <>
+                      {" "}
+                      · incl.{" "}
+                      <span className="font-semibold text-amber-600">
+                        RM {surcharge.toFixed(2)}
+                      </span>{" "}
+                      priority
+                    </>
+                  )}
+                </p>
+              </div>
+            )}
+
+            {!computing && !calculated && (
+              <p className="text-[11px] text-zinc-400">
+                {recommendedPrice > 0
+                  ? "Press Calculate for a recommended price, or enter your own."
+                  : "Add weight and pickup/dropoff, then press Calculate."}
+              </p>
+            )}
+          </div>
+
           {/* Monitoring requirements */}
           <div className="flex flex-col gap-2">
             <div>
@@ -437,55 +607,6 @@ export function CreateCargoRequestModal({
                 />
               </div>
             </label>
-          </div>
-
-          <div className="flex flex-col gap-1.5">
-            <div className="flex items-center justify-between">
-              <label className="text-xs font-semibold uppercase tracking-widest text-zinc-500 dark:text-zinc-400">
-                Budget (RM)
-              </label>
-              {priceEdited && recommendedPrice > 0 && (
-                <button
-                  type="button"
-                  onClick={() => {
-                    setPriceEdited(false);
-                    setForm((f) => ({ ...f, budget_rm: "" }));
-                    setErrors((er) => { const c = { ...er }; delete c.budget_rm; return c; });
-                  }}
-                  className="text-[11px] font-semibold text-amber-600 hover:text-amber-500"
-                >
-                  Use recommended
-                </button>
-              )}
-            </div>
-            <div className="relative">
-              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-zinc-400">RM</span>
-              <input
-                type="number"
-                min="0"
-                step="0.01"
-                value={priceValue}
-                placeholder={recommendedPrice > 0 ? String(recommendedPrice) : "0.00"}
-                onChange={(e) => {
-                  setPriceEdited(true);
-                  setForm((f) => ({ ...f, budget_rm: e.target.value }));
-                  setErrors((er) => { const c = { ...er }; delete c.budget_rm; return c; });
-                }}
-                className={`h-10 w-full rounded-lg border border-solid pl-10 pr-3 text-sm bg-zinc-50 dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 placeholder:text-zinc-400 outline-none focus:border-amber-400 transition-colors ${
-                  errors.budget_rm ? "border-red-400" : "border-black/[.08] dark:border-white/[.1]"
-                }`}
-              />
-            </div>
-            {errors.budget_rm && <p className="text-[11px] text-red-500">{errors.budget_rm}</p>}
-            {recommendedPrice > 0 && (
-              <p className="text-[11px] text-zinc-400">
-                Recommended <span className="font-semibold text-zinc-500 dark:text-zinc-300">RM {recommendedPrice.toFixed(2)}</span>
-                {distanceKm > 0 && <> · {distanceKm.toFixed(1)} km</>}
-                {form.priority_flag && surcharge > 0 && (
-                  <> · includes <span className="font-semibold text-amber-600">RM {surcharge.toFixed(2)}</span> priority surcharge</>
-                )}
-              </p>
-            )}
           </div>
         </div>
 
