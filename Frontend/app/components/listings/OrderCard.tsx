@@ -7,9 +7,11 @@ import { formatTime, truncate } from "./listingUtils";
 export function OrderCard({
   order,
   onSelect,
+  onCancel,
 }: {
   order: GetCargoRequestItem;
   onSelect: (o: GetCargoRequestItem) => void;
+  onCancel?: (id: number) => void;
 }) {
   const pickupStart = order.pickup.window_start
     ? formatTime(order.pickup.window_start)
@@ -22,12 +24,13 @@ export function OrderCard({
     : "Any day";
 
   return (
-    <button
-      onClick={() => onSelect(order)}
-      className={`w-full text-left border border-solid border-black/[.06] border-l-4 ${
-        order.priority_flag ? "border-l-amber-400" : "border-l-emerald-500"
-      } rounded-lg bg-white p-4 transition-all hover:shadow-md hover:border-black/[.12] active:scale-[0.995]`}
-    >
+    <div className="relative">
+      <button
+        onClick={() => onSelect(order)}
+        className={`w-full text-left border border-solid border-black/[.06] border-l-4 ${
+          order.priority_flag ? "border-l-amber-400" : "border-l-emerald-500"
+        } rounded-lg bg-white p-4 transition-all hover:shadow-md hover:border-black/[.12] active:scale-[0.995]`}
+      >
       <div className="flex items-start justify-between gap-3 mb-3">
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 mb-0.5">
@@ -72,6 +75,15 @@ export function OrderCard({
           <DataPill label="Pickup" value={`${pickupDate}, ${pickupStart}`} />
         </div>
       </div>
-    </button>
+      </button>
+      {onCancel && (
+        <button
+          onClick={() => onCancel(order.id)}
+          className="absolute bottom-4 right-4 z-10 text-[11px] font-medium text-zinc-400 hover:text-red-500 transition-colors"
+        >
+          Cancel
+        </button>
+      )}
+    </div>
   );
 }

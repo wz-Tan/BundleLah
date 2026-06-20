@@ -83,7 +83,7 @@ export default function AvailableTripsPage() {
     await cargoMatches.create({
       trip_listing_id: trip.id,
       cargo_request_id: cargo.id,
-      initiated_by: "shipper",
+      initiated_by: "cargo_owner",
       agreed_price_rm:
         pricePerKg != null && cargo.weight_kg != null
           ? Math.round(pricePerKg * cargo.weight_kg * 100) / 100

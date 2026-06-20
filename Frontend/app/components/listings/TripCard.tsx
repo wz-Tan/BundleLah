@@ -16,15 +16,18 @@ function formatTripDate(iso: string) {
 export function TripCard({
   trip,
   onSelect,
+  onCancel,
 }: {
   trip: GetTripListingItem;
   onSelect: (trip: GetTripListingItem) => void;
+  onCancel?: (id: number) => void;
 }) {
   return (
-    <button
-      onClick={() => onSelect(trip)}
-      className="w-full rounded-lg border border-solid border-black/[.06] bg-white p-4 text-left transition-all hover:border-black/[.12] hover:shadow-md active:scale-[0.995]"
-    >
+    <div className="relative">
+      <button
+        onClick={() => onSelect(trip)}
+        className="w-full rounded-lg border border-solid border-black/[.06] bg-white p-4 text-left transition-all hover:border-black/[.12] hover:shadow-md active:scale-[0.995]"
+      >
       <div className="mb-3 flex items-start justify-between gap-3">
         <div className="min-w-0">
           <p className="text-sm font-semibold text-zinc-900">
@@ -81,6 +84,15 @@ export function TripCard({
           </span>
         </div>
       </div>
-    </button>
+      </button>
+      {onCancel && (
+        <button
+          onClick={() => onCancel(trip.id)}
+          className="absolute bottom-4 right-4 z-10 text-[11px] font-medium text-zinc-400 hover:text-red-500 transition-colors"
+        >
+          Cancel
+        </button>
+      )}
+    </div>
   );
 }

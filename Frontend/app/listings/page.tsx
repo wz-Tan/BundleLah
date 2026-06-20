@@ -98,7 +98,7 @@ export default function CargoRequestsPage() {
     await cargoMatches.create({
       trip_listing_id: myTrips[0].id,
       cargo_request_id: order.id,
-      initiated_by: "carrier",
+      initiated_by: "logistics_provider",
       agreed_price_rm: order.suggested_budget_rm,
     });
   }
