@@ -11,6 +11,7 @@ if TYPE_CHECKING:
     from .trip_listing import TripListing
     from .cargo_request import CargoRequest
     from .cost_split import CostSplit
+    from .device import Device
 
 
 class CargoMatch(Base):
@@ -46,4 +47,7 @@ class CargoMatch(Base):
     )
     cost_splits: Mapped[List["CostSplit"]] = relationship(
         back_populates="match", cascade="all, delete-orphan"
+    )
+    devices: Mapped[List["Device"]] = relationship(
+        back_populates="cargo_match", cascade="all, delete-orphan"
     )
