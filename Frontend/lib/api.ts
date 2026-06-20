@@ -14,6 +14,7 @@ import type {
   CarbonLog,
   GetCargoRequestItem,
   GetTripListingItem,
+  InitiatedBy,
 } from "@/type";
 
 export const API_BASE_URL =
@@ -134,8 +135,6 @@ export interface TripListingCreatePayload {
   available_weight_kg?: number;
   available_volume_m3?: number;
 }
-
-export type InitiatedBy = "carrier" | "shipper";
 
 export interface CargoMatchCreatePayload {
   trip_listing_id: number;

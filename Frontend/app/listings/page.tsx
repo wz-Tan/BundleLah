@@ -261,7 +261,13 @@ export default function CargoRequestsPage() {
       </main>
 
       {selected && (
-        <OrderDetail order={selected} onClose={() => setSelected(null)} />
+        <OrderDetail
+          order={selected}
+          onClose={() => setSelected(null)}
+          onOffered={() =>
+            setRequests((prev) => prev.filter((r) => r.id !== selected.id))
+          }
+        />
       )}
 
       {showCreate && (
