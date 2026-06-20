@@ -1,0 +1,54 @@
+"use client";
+
+import Link from "next/link";
+import { usePathname, useRouter } from "next/navigation";
+
+const NAV_LINKS = [
+  { href: "/dashboard", label: "Dashboard" },
+  { href: "/listings", label: "Listings" },
+  { href: "/profile", label: "Profile" },
+];
+
+export default function Header() {
+  const pathname = usePathname();
+  const router = useRouter();
+
+  const handleSignOut = async () => {
+    // await supabase.auth.signOut()
+    router.push("/login");
+  };
+
+  return (
+    <header className="flex items-center justify-between px-6 py-3 border-b border-gray-200 bg-white">
+      <span className="text-lg font-semibold tracking-tight text-orange-500">
+        BundleLah
+      </span>
+
+      <nav className="flex items-center gap-1">
+        {NAV_LINKS.map(({ href, label }) => {
+          const isActive = pathname === href;
+          return (
+            <Link
+              key={href}
+              href={href}
+              className={`px-3 py-1.5 rounded-md text-md transition-all duration-150 inline-block ${
+                isActive
+                  ? " text-orange-600 font-bold"
+                  : "text-gray-500 hover:text-gray-900 hover:scale-105"
+              }`}
+            >
+              {label}
+            </Link>
+          );
+        })}
+      </nav>
+
+      <button
+        onClick={handleSignOut}
+        className="text-sm text-gray-500 hover:text-gray-900 transition-colors"
+      >
+        Sign out
+      </button>
+    </header>
+  );
+}
