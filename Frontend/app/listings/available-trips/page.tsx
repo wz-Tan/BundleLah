@@ -66,19 +66,12 @@ export default function AvailableTripsPage() {
     }
   }
 
-  // Request to put one of the current company's open cargo requests on this trip.
-  async function handleRequestPool(trip: GetTripListingItem) {
-    const companyId = getCurrentCompanyId() ?? 1;
-    const myCargo = await cargoRequests.list({
-      company_id: companyId,
-      status_filter: "open",
-    });
-    if (myCargo.length === 0) {
-      throw new Error(
-        "Create a cargo request first before requesting to pool on a trip."
-      );
-    }
-    const cargo = myCargo[0];
+  // Request to put the chosen cargo request on this trip.
+  async function handleRequestPool(
+    trip: GetTripListingItem,
+    cargoRequestId: number
+  ) {
+    const cargo = await cargoRequests.get(cargoRequestId);
     const pricePerKg = trip.estimated_price_per_kg_rm;
     await cargoMatches.create({
       trip_listing_id: trip.id,

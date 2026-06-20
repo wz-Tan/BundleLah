@@ -9,7 +9,6 @@ import {
 } from "@/app/components/listings";
 import {
   cargoRequests,
-  tripListings,
   cargoMatches,
   companies,
   buildCompanyNameMap,
@@ -83,20 +82,13 @@ export default function CargoRequestsPage() {
     }
   }
 
-  // Offer one of the current company's open trips to carry this cargo request.
-  async function handleOfferPool(order: GetCargoRequestItem) {
-    const companyId = getCurrentCompanyId() ?? 1;
-    const myTrips = await tripListings.list({
-      company_id: companyId,
-      status_filter: "open",
-    });
-    if (myTrips.length === 0) {
-      throw new Error(
-        "List an available trip first before offering to pool this cargo."
-      );
-    }
+  // Offer the chosen trip to carry this cargo request.
+  async function handleOfferPool(
+    order: GetCargoRequestItem,
+    tripListingId: number
+  ) {
     await cargoMatches.create({
-      trip_listing_id: myTrips[0].id,
+      trip_listing_id: tripListingId,
       cargo_request_id: order.id,
       initiated_by: "logistics_provider",
       agreed_price_rm: order.suggested_budget_rm,
