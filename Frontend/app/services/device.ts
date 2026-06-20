@@ -83,3 +83,29 @@ export async function fetchDeviceById(deviceId: number): Promise<DevicePublic> {
 
     return response.json();
 }
+export interface AlertDetail {
+    alert_type: string;
+    current_value: number | boolean | null;
+    threshold: number | boolean | null;
+    message: string;
+    timestamp: string;
+}
+
+export interface DeviceAlerts {
+    device_id: number;
+    alerts: AlertDetail[];
+}
+
+/**
+ * Get alerts for a specific device
+ */
+export async function fetchDeviceAlerts(deviceId: number): Promise<DeviceAlerts> {
+    const response = await fetch(`${API_BASE_URL}/devices/${deviceId}/alerts`);
+
+    if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.detail || "Failed to fetch device alerts");
+    }
+
+    return response.json();
+}

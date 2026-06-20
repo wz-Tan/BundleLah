@@ -2,6 +2,17 @@
 
 import { useEffect, useRef, useState } from "react";
 import { CargoMap, type CargoMarker } from "../components/CargoMap";
+import { fetchCargoMatches } from "@/app/services/listings";
+import { fetchDevicesByCargoMatch, fetchDeviceAlerts } from "@/app/services/device";
+import { getCurrentCompanyId } from "@/lib/session";
+
+interface Notification {
+  id: string;
+  message: string;
+  time: string;
+  deviceId: number;
+  alertType: string;
+}
 
 const SAMPLE_MARKERS: CargoMarker[] = [
   {
@@ -115,32 +126,120 @@ const PANELS = [
   },
 ];
 
-// Mock notifications data
-const NOTIFICATIONS = [
-  {
-    id: 1,
-    message:
-      "Order #ORD-1001 has hit 50°C — exceeds safe threshold for temperature-sensitive cargo.",
-    time: "10m ago",
-  },
-  {
-    id: 2,
-    message:
-      "Order #ORD-1004 — irregular motion detected. Parcel may have been opened in transit.",
-    time: "1h ago",
-  },
-  {
-    id: 3,
-    message:
-      "Order #ORD-1005 — ethylene gas levels rising. Fruit cargo may be over-ripening.",
-    time: "3h ago",
-  },
-];
+// Helper function to calculate time ago
+const getTimeAgo = (date: Date): string => {
+  const now = new Date();
+  const diffMs = now.getTime() - date.getTime();
+  const diffMins = Math.floor(diffMs / 60000);
+  const diffHours = Math.floor(diffMs / 3600000);
+  const diffDays = Math.floor(diffMs / 86400000);
+
+  if (diffMins < 1) return "Just now";
+  if (diffMins < 60) return `${diffMins}m ago`;
+  if (diffHours < 24) return `${diffHours}h ago`;
+  return `${diffDays}d ago`;
+};
+
 export default function DashboardPage() {
   const [active, setActive] = useState<string | null>(null);
   const [showNotifications, setShowNotifications] = useState(false);
-  const [notifications, setNotifications] = useState(NOTIFICATIONS);
+  const [notifications, setNotifications] = useState<Notification[]>([]);
+  const [isLoadingNotifications, setIsLoadingNotifications] = useState(true);
   const popoverRef = useRef<HTMLDivElement>(null);
+
+  // Fetch device alerts for notifications
+  useEffect(() => {
+    const companyId = getCurrentCompanyId();
+    if (!companyId) {
+      setIsLoadingNotifications(false);
+      return;
+    }
+
+    let cancelled = false;
+
+    async function fetchAlerts() {
+      try {
+        // Get all cargo matches for this company
+        const [cargoMatches, tripMatches] = await Promise.all([
+          fetchCargoMatches({ cargo_request_id: undefined, limit: 100 }),
+          fetchCargoMatches({ trip_listing_id: undefined, limit: 100 }),
+        ]);
+
+        if (cancelled) return;
+
+        // Get unique cargo match IDs
+        const matchIds = new Set([
+          ...cargoMatches.map(m => m.id),
+          ...tripMatches.map(m => m.id),
+        ]);
+
+        // Fetch devices for each cargo match
+        const devicePromises = Array.from(matchIds).map(async (matchId) => {
+          try {
+            return await fetchDevicesByCargoMatch(matchId);
+          } catch {
+            return [];
+          }
+        });
+
+        const deviceArrays = await Promise.all(devicePromises);
+        if (cancelled) return;
+
+        const allDevices = deviceArrays.flat();
+
+        // Fetch alerts for each device
+        const alertPromises = allDevices.map(async (device) => {
+          try {
+            return await fetchDeviceAlerts(device.id);
+          } catch {
+            return { device_id: device.id, alerts: [] };
+          }
+        });
+
+        const deviceAlerts = await Promise.all(alertPromises);
+        if (cancelled) return;
+
+        // Transform alerts into notifications
+        const allNotifications: Notification[] = [];
+        deviceAlerts.forEach((deviceAlert) => {
+          deviceAlert.alerts.forEach((alert) => {
+            const timeAgo = getTimeAgo(new Date(alert.timestamp));
+            allNotifications.push({
+              id: `${deviceAlert.device_id}-${alert.alert_type}-${alert.timestamp}`,
+              message: alert.message,
+              time: timeAgo,
+              deviceId: deviceAlert.device_id,
+              alertType: alert.alert_type,
+            });
+          });
+        });
+
+        // Sort by timestamp (most recent first)
+        allNotifications.sort((a, b) => {
+          const extractTime = (notif: Notification) => {
+            const match = notif.id.match(/\d{4}-\d{2}-\d{2}T[\d:.]+/);
+            return match ? new Date(match[0]).getTime() : 0;
+          };
+          return extractTime(b) - extractTime(a);
+        });
+
+        setNotifications(allNotifications);
+      } catch (err) {
+        console.error("Failed to fetch device alerts:", err);
+      } finally {
+        if (!cancelled) setIsLoadingNotifications(false);
+      }
+    }
+
+    fetchAlerts();
+    // Poll for new alerts every 30 seconds
+    const interval = setInterval(fetchAlerts, 30000);
+
+    return () => {
+      cancelled = true;
+      clearInterval(interval);
+    };
+  }, []);
 
   // Close the notification popup if clicked outside
   useEffect(() => {
@@ -250,7 +349,12 @@ export default function DashboardPage() {
               )}
             </div>
             <div className="max-h-64 overflow-y-auto divide-y divide-gray-50">
-              {hasNotifications ? (
+              {isLoadingNotifications ? (
+                <div className="p-6 text-center">
+                  <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-orange-500 mx-auto"></div>
+                  <p className="text-xs text-gray-400 mt-2">Loading alerts...</p>
+                </div>
+              ) : hasNotifications ? (
                 notifications.map((notif) => (
                   <div
                     key={notif.id}
@@ -276,11 +380,10 @@ export default function DashboardPage() {
         {/* Floating Action Button */}
         <button
           onClick={() => setShowNotifications(!showNotifications)}
-          className={`relative p-3.5 rounded-full shadow-lg border transition-all duration-200 focus:outline-none ${
-            showNotifications
+          className={`relative p-3.5 rounded-full shadow-lg border transition-all duration-200 focus:outline-none ${showNotifications
               ? "bg-orange-500 border-orange-500 text-white"
               : "bg-white border-gray-200 text-gray-600 hover:border-orange-400 hover:text-orange-500"
-          }`}
+            }`}
         >
           {/* Bell Icon */}
           <svg
