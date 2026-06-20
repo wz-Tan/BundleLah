@@ -1,5 +1,6 @@
 "use client";
 
+import { RouteMap } from "./RouteMap";
 import type { OrderRequest, TripListingDisplay } from "./types";
 
 interface TripListingCardProps {
@@ -87,14 +88,8 @@ export function TripListingCard({
           </span>
         </button>
       ) : (
-        <div className="lg:col-span-2 bg-orange-50/50 border border-orange-100 rounded-xl min-h-[220px] flex flex-col items-center justify-center relative overflow-hidden">
-          <div className="absolute inset-0 opacity-10 bg-[radial-gradient(#f97316_1px,transparent_1px)] [background-size:16px_16px]"></div>
-          <span className="text-xs font-medium text-orange-400 uppercase tracking-wider z-10">
-            Route Map Visualizer
-          </span>
-          <p className="text-xs text-gray-400 mt-1 z-10">
-            {trip.pickup} &rarr; {trip.destination}
-          </p>
+        <div className="lg:col-span-2 bg-orange-50/50 border border-orange-100 rounded-xl h-[260px] overflow-hidden">
+          <RouteMap pickup={trip.pickup} destination={trip.destination} />
         </div>
       )}
     </div>

@@ -4,6 +4,7 @@ from typing import Optional, Any, List, TYPE_CHECKING
 
 from sqlalchemy import (
     String,
+    Text,
     Numeric,
     DateTime,
     ForeignKey,
@@ -34,8 +35,8 @@ class TripListing(Base):
     vehicle_id: Mapped[Optional[int]] = mapped_column(
         ForeignKey("vehicles.id", ondelete="SET NULL")
     )
-    origin_region: Mapped[str] = mapped_column(String(100), nullable=False)
-    destination_region: Mapped[str] = mapped_column(String(100), nullable=False)
+    origin_region: Mapped[str] = mapped_column(Text, nullable=False)
+    destination_region: Mapped[str] = mapped_column(Text, nullable=False)
     route_json: Mapped[Optional[Any]] = mapped_column(JSON)
     departure_window_start: Mapped[datetime] = mapped_column(DateTime, nullable=False)
     available_weight_kg: Mapped[Optional[Decimal]] = mapped_column(Numeric(10, 2))
