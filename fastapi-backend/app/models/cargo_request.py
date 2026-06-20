@@ -44,6 +44,12 @@ class CargoRequest(Base):
     pickup_window_end: Mapped[Optional[datetime]] = mapped_column(DateTime)
     status: Mapped[Optional[str]] = mapped_column(String(20), default="open")
     priority_flag: Mapped[Optional[bool]] = mapped_column(Boolean, default=False)
+    # Cold-chain / safety monitoring requirements. A threshold being set means
+    # that sensor is required; NULL means it isn't. motion_required is on/off.
+    temp_threshold_c: Mapped[Optional[Decimal]] = mapped_column(Numeric(6, 2))
+    humidity_threshold_pct: Mapped[Optional[Decimal]] = mapped_column(Numeric(5, 2))
+    ethylene_threshold_ppm: Mapped[Optional[Decimal]] = mapped_column(Numeric(6, 2))
+    motion_required: Mapped[Optional[bool]] = mapped_column(Boolean, default=False)
     created_at: Mapped[Optional[datetime]] = mapped_column(server_default=func.now())
 
     __table_args__ = (

@@ -1,11 +1,25 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import type { CargoRequest } from "@/type";
+import type { CargoRequest, MonitoringRequirements } from "@/type";
 import { LocationPicker, type LocationValue } from "./LocationPicker";
 import { recommendCargoPrice, prioritySurchargeRm, haversineKm } from "@/lib/pricing";
 
 const EMPTY_LOCATION: LocationValue = { address: "", lat: null, lng: null };
+
+interface SensorCriterion {
+  enabled: boolean;
+  value: string;
+}
+
+interface MonitoringState {
+  temperature: SensorCriterion;
+  humidity: SensorCriterion;
+  ethylene: SensorCriterion;
+  motion: boolean;
+}
+
+type ThresholdSensor = "temperature" | "humidity" | "ethylene";
 
 interface CargoRequestFormState {
   pickup: LocationValue;
@@ -16,6 +30,7 @@ interface CargoRequestFormState {
   pickup_window_start: string;
   pickup_window_end: string;
   priority_flag: boolean;
+  monitoring: MonitoringState;
 }
 
 type CargoRequestTextField = Exclude<keyof CargoRequestFormState, "priority_flag" | "pickup" | "dropoff" | "budget_rm">;
@@ -72,8 +87,18 @@ export function CreateCargoRequestModal({
     pickup_window_start: "",
     pickup_window_end: "",
     priority_flag: false,
+    monitoring: {
+      temperature: { enabled: false, value: "" },
+      humidity: { enabled: false, value: "" },
+      ethylene: { enabled: false, value: "" },
+      motion: false,
+    },
   });
   const [errors, setErrors] = useState<Partial<Record<keyof CargoRequestFormState, string>>>({});
+  // Validation messages for the monitoring threshold inputs.
+  const [monitorErrors, setMonitorErrors] = useState<
+    Partial<Record<ThresholdSensor, string>>
+  >({});
   // Tracks whether the user has manually overridden the recommended price.
   const [priceEdited, setPriceEdited] = useState(false);
 
@@ -114,6 +139,60 @@ export function CreateCargoRequestModal({
       ? String(recommendedPrice)
       : "";
 
+  // Monitoring sensor config (label + unit + input hints) for the UI.
+  const THRESHOLD_SENSORS: {
+    key: ThresholdSensor;
+    label: string;
+    unit: string;
+    placeholder: string;
+    allowNegative: boolean;
+  }[] = [
+    { key: "temperature", label: "Temperature", unit: "°C", placeholder: "e.g. 4", allowNegative: true },
+    { key: "humidity", label: "Humidity", unit: "%", placeholder: "e.g. 70", allowNegative: false },
+    { key: "ethylene", label: "Ethylene gas", unit: "ppm", placeholder: "e.g. 1.0", allowNegative: false },
+  ];
+
+  function setSensorEnabled(key: ThresholdSensor, enabled: boolean) {
+    setForm((f) => ({
+      ...f,
+      monitoring: { ...f.monitoring, [key]: { ...f.monitoring[key], enabled } },
+    }));
+    if (!enabled) {
+      setMonitorErrors((e) => {
+        const c = { ...e };
+        delete c[key];
+        return c;
+      });
+    }
+  }
+
+  function setSensorValue(key: ThresholdSensor, value: string) {
+    setForm((f) => ({
+      ...f,
+      monitoring: { ...f.monitoring, [key]: { ...f.monitoring[key], value } },
+    }));
+    setMonitorErrors((e) => {
+      const c = { ...e };
+      delete c[key];
+      return c;
+    });
+  }
+
+  function validateMonitoring(): Partial<Record<ThresholdSensor, string>> {
+    const e: Partial<Record<ThresholdSensor, string>> = {};
+    for (const { key, label, allowNegative } of THRESHOLD_SENSORS) {
+      const sensor = form.monitoring[key];
+      if (!sensor.enabled) continue;
+      const num = Number(sensor.value);
+      if (sensor.value.trim() === "" || isNaN(num)) {
+        e[key] = `Enter a ${label.toLowerCase()} threshold.`;
+      } else if (!allowNegative && num < 0) {
+        e[key] = `${label} threshold can't be negative.`;
+      }
+    }
+    return e;
+  }
+
   function validate(): Partial<Record<keyof CargoRequestFormState, string>> {
     const e: Partial<Record<keyof CargoRequestFormState, string>> = {};
     if (form.pickup.lat == null || form.pickup.lng == null) e.pickup = "Select a pickup location on the map.";
@@ -138,7 +217,20 @@ export function CreateCargoRequestModal({
 
   function handleSubmit() {
     const e = validate();
-    if (Object.keys(e).length) { setErrors(e); return; }
+    const me = validateMonitoring();
+    if (Object.keys(e).length || Object.keys(me).length) {
+      setErrors(e);
+      setMonitorErrors(me);
+      return;
+    }
+
+    const m = form.monitoring;
+    const monitoring: MonitoringRequirements = {
+      temperature_c: m.temperature.enabled ? Number(m.temperature.value) : null,
+      humidity_pct: m.humidity.enabled ? Number(m.humidity.value) : null,
+      ethylene_ppm: m.ethylene.enabled ? Number(m.ethylene.value) : null,
+      motion: m.motion,
+    };
 
     const req: CargoRequest = {
       id: Date.now(),
@@ -157,6 +249,7 @@ export function CreateCargoRequestModal({
       status: "open",
       priority_flag: form.priority_flag,
       created_at: new Date().toISOString(),
+      monitoring,
     };
     onSubmit(req);
   }
@@ -256,6 +349,95 @@ export function CreateCargoRequestModal({
               />
             </div>
           </label>
+
+          {/* Monitoring requirements */}
+          <div className="flex flex-col gap-2">
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-widest text-zinc-500">
+                Monitoring requirements
+              </p>
+              <p className="text-[11px] text-zinc-400 mt-0.5">
+                Choose the conditions to monitor in transit, and set a threshold
+                for each.
+              </p>
+            </div>
+
+            {THRESHOLD_SENSORS.map(({ key, label, unit, placeholder }) => {
+              const sensor = form.monitoring[key];
+              return (
+                <div
+                  key={key}
+                  className="rounded-lg border border-solid border-black/[.06] px-4 py-3"
+                >
+                  <label className="flex items-center justify-between cursor-pointer">
+                    <span className="text-sm font-medium text-zinc-800">
+                      {label}
+                    </span>
+                    <div
+                      className={`relative w-10 h-5 rounded-full transition-colors ${sensor.enabled ? "bg-amber-400" : "bg-zinc-200"}`}
+                      onClick={() => setSensorEnabled(key, !sensor.enabled)}
+                    >
+                      <div
+                        className={`absolute top-0.5 w-4 h-4 rounded-full bg-white shadow transition-transform ${sensor.enabled ? "translate-x-5" : "translate-x-0.5"}`}
+                      />
+                    </div>
+                  </label>
+                  {sensor.enabled && (
+                    <div className="mt-3">
+                      <label className="text-[11px] font-medium uppercase tracking-wide text-zinc-400">
+                        Threshold
+                      </label>
+                      <div className="relative mt-1">
+                        <input
+                          type="number"
+                          step="0.1"
+                          value={sensor.value}
+                          placeholder={placeholder}
+                          onChange={(e) => setSensorValue(key, e.target.value)}
+                          className={`h-9 w-full rounded-lg border border-solid pr-12 pl-3 text-sm bg-zinc-50 text-zinc-900 placeholder:text-zinc-400 outline-none focus:border-amber-400 transition-colors ${
+                            monitorErrors[key] ? "border-red-400" : "border-black/[.08]"
+                          }`}
+                        />
+                        <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-zinc-400">
+                          {unit}
+                        </span>
+                      </div>
+                      {monitorErrors[key] && (
+                        <p className="mt-1 text-[11px] text-red-500">
+                          {monitorErrors[key]}
+                        </p>
+                      )}
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+
+            {/* Motion sensor — detection only, no threshold value. */}
+            <label className="flex items-center justify-between cursor-pointer rounded-lg border border-solid border-black/[.06] px-4 py-3">
+              <div>
+                <span className="text-sm font-medium text-zinc-800">
+                  Motion sensor
+                </span>
+                <p className="text-[11px] text-zinc-400">
+                  Alert on movement / tampering
+                </p>
+              </div>
+              <div
+                className={`relative w-10 h-5 rounded-full transition-colors ${form.monitoring.motion ? "bg-amber-400" : "bg-zinc-200"}`}
+                onClick={() =>
+                  setForm((f) => ({
+                    ...f,
+                    monitoring: { ...f.monitoring, motion: !f.monitoring.motion },
+                  }))
+                }
+              >
+                <div
+                  className={`absolute top-0.5 w-4 h-4 rounded-full bg-white shadow transition-transform ${form.monitoring.motion ? "translate-x-5" : "translate-x-0.5"}`}
+                />
+              </div>
+            </label>
+          </div>
 
           <div className="flex flex-col gap-1.5">
             <div className="flex items-center justify-between">
