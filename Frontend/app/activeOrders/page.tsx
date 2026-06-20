@@ -13,6 +13,7 @@ import {
 import { getCurrentCompanyId } from "@/lib/session";
 import {
   formatDateTime,
+  RequestCard,
   type ActiveOrdersTab,
   type OrderRequest,
   type TripListingDisplay,
@@ -157,6 +158,7 @@ export default function ActiveOrdersPage() {
                 : estimateBudgetRm(cr?.weight_kg);
             return {
               id: `MATCH-${m.id}`,
+              matchId: m.id,
               offeredBy,
               pickup: cr?.pickup_address ?? "Unknown pickup",
               destination: cr?.dropoff_address ?? "Unknown destination",
@@ -210,6 +212,22 @@ export default function ActiveOrdersPage() {
     setSelectedTrip(null);
     setSelectedPoolRequest(null);
   };
+
+  // Accept an offer to carry my cargo: marks the match accepted.
+  async function handleAcceptOffer(matchId: number) {
+    await cargoMatches.update(matchId, { status: "accepted" });
+    setRequests((prev) =>
+      prev.map((r) =>
+        r.matchId === matchId ? { ...r, status: "accepted" } : r
+      )
+    );
+  }
+
+  // Reject an offer: marks the match rejected and drops it from the list.
+  async function handleRejectOffer(matchId: number) {
+    await cargoMatches.update(matchId, { status: "rejected" });
+    setRequests((prev) => prev.filter((r) => r.matchId !== matchId));
+  }
 
   console.log(requests, trips)
   return (
@@ -277,49 +295,12 @@ export default function ActiveOrdersPage() {
             {activeTab === "requests" && (
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {requests.map((req) => (
-                  <div
+                  <RequestCard
                     key={req.id}
-                    className="bg-white border border-gray-200 rounded-xl p-5 flex flex-col justify-between shadow-sm"
-                  >
-                    <div className="flex justify-between items-start mb-4">
-                      <div>
-                        <span className="text-xs font-semibold text-gray-400 uppercase tracking-wider">
-                          Order ID
-                        </span>
-                        <h3 className="text-sm font-bold text-gray-900">
-                          {req.id}
-                        </h3>
-                      </div>
-                      <span
-                        className={`text-xs px-2.5 py-1 rounded-full font-medium uppercase tracking-wide ${req.status === "accepted"
-                          ? "bg-green-100 text-green-700"
-                          : "bg-orange-100 text-orange-700"
-                          }`}
-                      >
-                        {req.status}
-                      </span>
-                    </div>
-
-                    <div className="space-y-2 text-sm text-gray-600 mb-4">
-                      <div>
-                        <strong className="text-gray-900">Pick Up:</strong>{" "}
-                        {req.pickup}
-                      </div>
-                      <div>
-                        <strong className="text-gray-900">Destination:</strong>{" "}
-                        {req.destination}
-                      </div>
-                    </div>
-
-                    <div className="border-t border-gray-100 pt-3 flex justify-between items-center">
-                      <span className="text-xs text-gray-400 font-medium uppercase">
-                        Price
-                      </span>
-                      <span className="text-lg font-semibold text-orange-500">
-                        RM {req.price}
-                      </span>
-                    </div>
-                  </div>
+                    request={req}
+                    onAccept={handleAcceptOffer}
+                    onReject={handleRejectOffer}
+                  />
                 ))}
               </div>
             )}

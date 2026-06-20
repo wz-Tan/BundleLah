@@ -9,6 +9,8 @@ export interface OrderRequest {
   status: string;
   // For offers on your cargo: the logistics provider who made the offer.
   offeredBy?: string;
+  // The underlying cargo_match id (used to accept/reject the offer).
+  matchId?: number;
 }
 
 export interface TripListingDisplay {
