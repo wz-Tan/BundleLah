@@ -52,7 +52,16 @@ export default function RequestBreakdown({
     const fetchTrackingRecordsData = async (deviceId: number) => {
         try {
             const records = await fetchTrackingRecordsService(deviceId, 50);
-            setTrackingRecords(records);
+            setTrackingRecords((prev) => {
+                if (prev.length !== records.length) {
+                    return records;
+                }
+
+                const hasChanged = records.some((record, index) =>
+                    !prev[index] || prev[index].id !== record.id
+                );
+                return hasChanged ? records : prev;
+            });
         } catch (err) {
             console.error("Failed to fetch tracking records:", err);
         }
@@ -107,10 +116,10 @@ export default function RequestBreakdown({
     useEffect(() => {
         if (device) {
             fetchTrackingRecordsData(device.id);
-            // Auto-refresh every 10 seconds
             const interval = setInterval(() => {
                 fetchTrackingRecordsData(device.id);
-            }, 10000);
+                console.log('fetched');
+            }, 500);
             return () => clearInterval(interval);
         }
     }, [device]);
