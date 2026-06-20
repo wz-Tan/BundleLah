@@ -161,7 +161,6 @@ export interface GetTripListingItem {
     volume_m3: number;
   };
   match_status: TripListingStatus;
-  estimated_price_per_kg_rm: number;
 }
 
 export interface GetTripListingsResponse {

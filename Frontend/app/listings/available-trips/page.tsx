@@ -1,13 +1,106 @@
 "use client";
 
-import { ListingModeTabs, TripCard, TripDetail } from "@/app/components/listings";
-import type { GetTripListingItem } from "@/type";
 import { tripListings, companies, vehicles, toTripListingItem } from "@/lib/api";
 import { useEffect, useState } from "react";
+import type { GetTripListingItem, GetTripListingsResponse, TripListing } from "@/type";
+import {
+  CreateTripModal,
+  ListingModeTabs,
+  TripCard,
+  TripDetail
+} from "@/app/components/listings";
+
+const MOCK_TRIP_LISTINGS: GetTripListingsResponse = {
+  results: [
+    {
+      id: 1,
+      logistics_provider: {
+        company_id: 11,
+        name: "Sarawak Freight Co.",
+        license_plate: "QAA 2381",
+        vehicle_type: "5-ton box truck",
+      },
+      origin_region: "Bintawa Industrial Estate, Kuching",
+      destination_region: "Demak Laut Industrial Park, Kuching",
+      departure_window_start: "2026-06-21T08:30:00Z",
+      available_capacity: {
+        weight_kg: 420,
+        volume_m3: 5.4,
+      },
+      match_status: "open",
+    },
+    {
+      id: 2,
+      logistics_provider: {
+        company_id: 12,
+        name: "Kuching Consolidated Logistics",
+        license_plate: "QAB 9027",
+        vehicle_type: "3-ton lorry",
+      },
+      origin_region: "Pending Industrial Park, Kuching",
+      destination_region: "Kuching City Centre",
+      departure_window_start: "2026-06-21T09:15:00Z",
+      available_capacity: {
+        weight_kg: 260,
+        volume_m3: 3.1,
+      },
+      match_status: "open",
+    },
+    {
+      id: 3,
+      logistics_provider: {
+        company_id: 13,
+        name: "Borneo RouteLink",
+        license_plate: "QAC 6615",
+        vehicle_type: "10-ton curtain sider",
+      },
+      origin_region: "Kuching Port Authority, Pending",
+      destination_region: "Batu Kawa New Township, Kuching",
+      departure_window_start: "2026-06-22T06:00:00Z",
+      available_capacity: {
+        weight_kg: 1100,
+        volume_m3: 11.8,
+      },
+      match_status: "locked",
+    },
+    {
+      id: 4,
+      logistics_provider: {
+        company_id: 14,
+        name: "Tabuan Fleet Services",
+        license_plate: "QAD 4472",
+        vehicle_type: "van",
+      },
+      origin_region: "Tabuan Jaya Commercial Centre, Kuching",
+      destination_region: "Jalan Padungan, Kuching",
+      departure_window_start: "2026-06-22T13:00:00Z",
+      available_capacity: {
+        weight_kg: 95,
+        volume_m3: 1.6,
+      },
+      match_status: "open",
+    },
+  ],
+};
+
+const CAPACITY_FILTERS = [
+  { value: "all", label: "All capacity" },
+  { value: "small", label: "Under 200 kg" },
+  { value: "medium", label: "200-600 kg" },
+  { value: "large", label: "600 kg+" },
+] as const;
+
+type CapacityFilter = (typeof CAPACITY_FILTERS)[number]["value"];
 
 export default function AvailableTripsPage() {
   const [search, setSearch] = useState("");
   const [selected, setSelected] = useState<GetTripListingItem | null>(null);
+  const [showCreate, setShowCreate] = useState(false);
+
+  function handleCreate(trip: TripListing) {
+    console.log("New trip listing:", trip);
+    setShowCreate(false);
+  }
 
   const [trips, setTrips] = useState<GetTripListingItem[]>([]);
   const [loading, setLoading] = useState(true);
@@ -65,11 +158,11 @@ export default function AvailableTripsPage() {
   });
 
   return (
-    <div className="flex flex-col flex-1 items-center bg-zinc-50 dark:bg-black font-sans min-h-screen">
+    <div className="flex flex-col flex-1 items-center bg-gray-50 min-h-screen relative">
       <main className="flex flex-1 w-full max-w-3xl flex-col py-12 px-6 sm:px-16">
         <div className="flex items-end justify-between mb-8">
           <div>
-            <h1 className="text-3xl font-semibold tracking-tight text-zinc-900 dark:text-zinc-50 leading-8">
+            <h1 className="text-xl font-semibold text-gray-900">
               Available Trips
             </h1>
             <p className="text-sm text-zinc-500 dark:text-zinc-400 mt-1">
@@ -85,6 +178,13 @@ export default function AvailableTripsPage() {
             </p>
           </div>
         </div>
+
+        <button
+          onClick={() => setShowCreate(true)}
+          className="mb-6 self-start h-10 px-4 rounded-full bg-emerald-600 text-white text-sm font-semibold hover:bg-emerald-500 transition-colors"
+        >
+          + List a trip
+        </button>
 
         <ListingModeTabs />
 
@@ -142,6 +242,13 @@ export default function AvailableTripsPage() {
 
       {selected && (
         <TripDetail trip={selected} onClose={() => setSelected(null)} />
+      )}
+
+      {showCreate && (
+        <CreateTripModal
+          onClose={() => setShowCreate(false)}
+          onSubmit={handleCreate}
+        />
       )}
     </div>
   );

@@ -1,11 +1,12 @@
 "use client";
 
+import type { GetCargoRequestItem, CargoRequest } from "@/type";
 import {
+  CreateCargoRequestModal,
   ListingModeTabs,
   OrderCard,
   OrderDetail,
 } from "@/app/components/listings";
-import type { GetCargoRequestItem } from "@/type";
 import {
   cargoRequests,
   companies,
@@ -26,6 +27,12 @@ export default function CargoRequestsPage() {
   const [search, setSearch] = useState("");
   const [priorityFilter, setPriorityFilter] = useState<PriorityFilter>("all");
   const [selected, setSelected] = useState<GetCargoRequestItem | null>(null);
+  const [showCreate, setShowCreate] = useState(false);
+
+  function handleCreate(req: CargoRequest) {
+    console.log("New cargo request:", req);
+    setShowCreate(false);
+  }
 
   const [requests, setRequests] = useState<GetCargoRequestItem[]>([]);
   const [loading, setLoading] = useState(true);
@@ -92,7 +99,7 @@ export default function CargoRequestsPage() {
             <h1 className="text-xl font-semibold text-gray-900">
               Pool Requests
             </h1>
-            <p className="text-sm text-gray-400 mt-0.5">
+            <p className="text-sm text-zinc-500 dark:text-zinc-400 mt-1">
               For companies with their own logistics team
             </p>
           </div>
@@ -105,6 +112,13 @@ export default function CargoRequestsPage() {
             </p>
           </div>
         </div>
+
+        <button
+          onClick={() => setShowCreate(true)}
+          className="mb-6 self-start h-10 px-4 rounded-full bg-orange-500 text-white  text-sm font-semibold hover:bg-orange-400 transition-colors"
+        >
+          + New request
+        </button>
 
         <ListingModeTabs />
 
@@ -178,6 +192,13 @@ export default function CargoRequestsPage() {
 
       {selected && (
         <OrderDetail order={selected} onClose={() => setSelected(null)} />
+      )}
+
+      {showCreate && (
+        <CreateCargoRequestModal
+          onClose={() => setShowCreate(false)}
+          onSubmit={handleCreate}
+        />
       )}
     </div>
   );
