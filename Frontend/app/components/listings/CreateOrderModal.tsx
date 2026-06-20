@@ -1,10 +1,10 @@
 "use client";
 
 import { useState } from "react";
-import type { CreateOrderRequest } from "@/type";
+import type { CargoRequest } from "@/type";
 
 interface CreateFormState {
-  supplier_address: string;
+  pickup_address: string;
   dropoff_address: string;
   weight_kg: string;
   volume_m3: string;
@@ -56,10 +56,10 @@ export function CreateOrderModal({
   onSubmit,
 }: {
   onClose: () => void;
-  onSubmit: (req: CreateOrderRequest) => void;
+  onSubmit: (req: CargoRequest) => void;
 }) {
   const [form, setForm] = useState<CreateFormState>({
-    supplier_address: "",
+    pickup_address: "",
     dropoff_address: "",
     weight_kg: "",
     volume_m3: "",
@@ -71,7 +71,7 @@ export function CreateOrderModal({
 
   function validate(): Partial<Record<keyof CreateFormState, string>> {
     const e: Partial<Record<keyof CreateFormState, string>> = {};
-    if (!form.supplier_address.trim()) e.supplier_address = "Pickup address is required.";
+    if (!form.pickup_address.trim()) e.pickup_address = "Pickup address is required.";
     if (!form.dropoff_address.trim())  e.dropoff_address  = "Dropoff address is required.";
     if (!form.weight_kg || isNaN(Number(form.weight_kg)) || Number(form.weight_kg) <= 0)
       e.weight_kg = "Enter a valid weight.";
@@ -93,9 +93,10 @@ export function CreateOrderModal({
     const e = validate();
     if (Object.keys(e).length) { setErrors(e); return; }
 
-    const req: CreateOrderRequest = {
+    const req: CargoRequest = {
+      id: Date.now(),
       company_id: 1,
-      supplier_address: form.supplier_address,
+      pickup_address: form.pickup_address,
       pickup_lat: 1.55,
       pickup_lng: 110.33,
       dropoff_address: form.dropoff_address,
@@ -105,7 +106,9 @@ export function CreateOrderModal({
       volume_m3: Number(form.volume_m3),
       pickup_window_start: new Date(form.pickup_window_start).toISOString(),
       pickup_window_end:   new Date(form.pickup_window_end).toISOString(),
+      status: "open",
       priority_flag: form.priority_flag,
+      created_at: new Date().toISOString(),
     };
     onSubmit(req);
   }
@@ -140,9 +143,9 @@ export function CreateOrderModal({
         <div className="px-6 py-5 flex flex-col gap-4 max-h-[70vh] overflow-y-auto">
           <TextField
             label="Pickup Address"
-            field="supplier_address"
-            value={form.supplier_address}
-            error={errors.supplier_address}
+            field="pickup_address"
+            value={form.pickup_address}
+            error={errors.pickup_address}
             onChange={setField}
             placeholder="e.g. Warehouse 5, Bintawa Industrial Estate"
           />

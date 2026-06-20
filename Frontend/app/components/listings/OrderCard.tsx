@@ -1,28 +1,32 @@
 "use client";
 
-import type { GetOrderResponse } from "@/type";
+import type { GetCargoRequestItem } from "@/type";
 import { DataPill } from "./DataPill";
-import { StatusBadge } from "./StatusBadge";
-import { formatTime, STATUS_STYLES, truncate } from "./listingUtils";
+import { formatTime, truncate } from "./listingUtils";
 
 export function OrderCard({
   order,
   onSelect,
 }: {
-  order: GetOrderResponse;
-  onSelect: (o: GetOrderResponse) => void;
+  order: GetCargoRequestItem;
+  onSelect: (o: GetCargoRequestItem) => void;
 }) {
-  const s = STATUS_STYLES[order.status];
-  const pickupStart = formatTime(order.pickup_window_start);
-  const pickupEnd = formatTime(order.pickup_window_end);
-  const pickupDate = new Date(order.pickup_window_start).toLocaleDateString("en-MY", {
-    day: "2-digit", month: "short",
-  });
+  const pickupStart = order.pickup.window_start
+    ? formatTime(order.pickup.window_start)
+    : "Flexible";
+  const pickupDate = order.pickup.window_start
+    ? new Date(order.pickup.window_start).toLocaleDateString("en-MY", {
+        day: "2-digit",
+        month: "short",
+      })
+    : "Any day";
 
   return (
     <button
       onClick={() => onSelect(order)}
-      className={`w-full text-left border border-solid border-black/[.06] dark:border-white/[.08] border-l-4 ${s.border} rounded-lg bg-white dark:bg-zinc-900 p-4 transition-all hover:shadow-md hover:border-black/[.12] dark:hover:border-white/[.14] active:scale-[0.995]`}
+      className={`w-full text-left border border-solid border-black/[.06] dark:border-white/[.08] border-l-4 ${
+        order.priority_flag ? "border-l-amber-400" : "border-l-emerald-500"
+      } rounded-lg bg-white dark:bg-zinc-900 p-4 transition-all hover:shadow-md hover:border-black/[.12] dark:hover:border-white/[.14] active:scale-[0.995]`}
     >
       <div className="flex items-start justify-between gap-3 mb-3">
         <div className="flex-1 min-w-0">
@@ -33,14 +37,16 @@ export function OrderCard({
               </span>
             )}
             <span className="text-[11px] text-zinc-400 dark:text-zinc-500 font-mono">
-              #ORD-{String(order.id).padStart(4, "0")}
+              #REQ-{String(order.id).padStart(4, "0")}
             </span>
           </div>
           <p className="text-sm font-semibold text-zinc-900 dark:text-zinc-100 truncate">
-            Company #{order.company_id}
+            {order.sender_company}
           </p>
         </div>
-        <StatusBadge status={order.status} />
+        <span className="text-base font-bold text-zinc-900 dark:text-zinc-50 tabular-nums">
+          RM {order.suggested_budget_rm.toFixed(2)}
+        </span>
       </div>
 
       <div className="flex items-stretch gap-2 mb-3">
@@ -51,29 +57,19 @@ export function OrderCard({
         </div>
         <div className="flex flex-col gap-1.5 flex-1 min-w-0">
           <p className="text-xs text-zinc-500 dark:text-zinc-400 leading-tight">
-            {truncate(order.supplier_address, 60)}
+            {truncate(order.pickup.address, 60)}
           </p>
           <p className="text-xs font-medium text-zinc-700 dark:text-zinc-300 leading-tight">
-            {truncate(order.dropoff_address, 60)}
+            {truncate(order.dropoff.address, 60)}
           </p>
         </div>
       </div>
 
       <div className="flex items-end justify-between gap-4 flex-wrap">
         <div className="flex gap-5">
-          <DataPill label="Weight" value={`${order.weight_kg} kg`} />
-          <DataPill label="Volume" value={`${order.volume_m3} m³`} />
-          <DataPill label="Pickup" value={`${pickupDate}, ${pickupStart}–${pickupEnd}`} />
-        </div>
-        <div className="flex items-center gap-2">
-          {order.trip && (
-            <span className="text-xs text-zinc-500 dark:text-zinc-400 font-mono">
-              {order.trip.vehicle_plate}
-            </span>
-          )}
-          <span className="text-base font-bold text-zinc-900 dark:text-zinc-50 tabular-nums">
-            RM {order.estimated_cost_rm.toFixed(2)}
-          </span>
+          <DataPill label="Weight" value={`${order.cargo_details.weight_kg} kg`} />
+          <DataPill label="Volume" value={`${order.cargo_details.volume_m3} m³`} />
+          <DataPill label="Pickup" value={`${pickupDate}, ${pickupStart}`} />
         </div>
       </div>
     </button>

@@ -1,11 +1,19 @@
-import type { OrderStatus } from "@/type";
+import type { CargoRequestStatus, TripListingStatus } from "@/type";
 
-export const STATUS_STYLES: Record<OrderStatus, { dot: string; label: string; border: string }> = {
-  pending:    { dot: "bg-amber-400",   label: "Pending",    border: "border-l-amber-400"   },
-  grouped:    { dot: "bg-blue-500",    label: "Grouped",    border: "border-l-blue-500"    },
-  dispatched: { dot: "bg-violet-500",  label: "Dispatched", border: "border-l-violet-500"  },
-  delivered:  { dot: "bg-emerald-500", label: "Delivered",  border: "border-l-emerald-500" },
-  cancelled:  { dot: "bg-zinc-400",    label: "Cancelled",  border: "border-l-zinc-400"    },
+export const CARGO_STATUS_STYLES: Record<CargoRequestStatus, { dot: string; label: string; border: string }> = {
+  open:       { dot: "bg-emerald-500", label: "Open",       border: "border-l-emerald-500" },
+  matched:    { dot: "bg-blue-500",    label: "Matched",    border: "border-l-blue-500"    },
+  in_transit: { dot: "bg-violet-500",  label: "In Transit", border: "border-l-violet-500"  },
+  delivered:  { dot: "bg-zinc-500",    label: "Delivered",  border: "border-l-zinc-500"    },
+  cancelled:  { dot: "bg-red-400",     label: "Cancelled",  border: "border-l-red-400"     },
+};
+
+export const TRIP_STATUS_STYLES: Record<TripListingStatus, { dot: string; label: string; border: string }> = {
+  open:        { dot: "bg-emerald-500", label: "Open",        border: "border-l-emerald-500" },
+  locked:      { dot: "bg-blue-500",    label: "Locked",      border: "border-l-blue-500"    },
+  in_progress: { dot: "bg-violet-500",  label: "In Progress", border: "border-l-violet-500"  },
+  completed:   { dot: "bg-zinc-500",    label: "Completed",   border: "border-l-zinc-500"    },
+  cancelled:   { dot: "bg-red-400",     label: "Cancelled",   border: "border-l-red-400"     },
 };
 
 export function formatDate(iso: string) {
