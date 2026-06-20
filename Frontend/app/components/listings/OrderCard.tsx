@@ -24,42 +24,42 @@ export function OrderCard({
   return (
     <button
       onClick={() => onSelect(order)}
-      className={`w-full text-left border border-solid border-black/[.06] dark:border-white/[.08] border-l-4 ${
+      className={`w-full text-left border border-solid border-black/[.06] border-l-4 ${
         order.priority_flag ? "border-l-amber-400" : "border-l-emerald-500"
-      } rounded-lg bg-white dark:bg-zinc-900 p-4 transition-all hover:shadow-md hover:border-black/[.12] dark:hover:border-white/[.14] active:scale-[0.995]`}
+      } rounded-lg bg-white p-4 transition-all hover:shadow-md hover:border-black/[.12] active:scale-[0.995]`}
     >
       <div className="flex items-start justify-between gap-3 mb-3">
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 mb-0.5">
             {order.priority_flag && (
-              <span className="text-[10px] font-bold uppercase tracking-widest text-amber-600 bg-amber-50 dark:bg-amber-950 dark:text-amber-400 px-1.5 py-0.5 rounded">
+              <span className="text-[10px] font-bold uppercase tracking-widest text-amber-600 bg-amber-50 px-1.5 py-0.5 rounded">
                 Priority
               </span>
             )}
-            <span className="text-[11px] text-zinc-400 dark:text-zinc-500 font-mono">
+            <span className="text-[11px] text-zinc-400 font-mono">
               #REQ-{String(order.id).padStart(4, "0")}
             </span>
           </div>
-          <p className="text-sm font-semibold text-zinc-900 dark:text-zinc-100 truncate">
+          <p className="text-sm font-semibold text-zinc-900 truncate">
             {order.sender_company}
           </p>
         </div>
-        <span className="text-base font-bold text-zinc-900 dark:text-zinc-50 tabular-nums">
+        <span className="text-base font-bold text-zinc-900 tabular-nums">
           RM {order.suggested_budget_rm.toFixed(2)}
         </span>
       </div>
 
       <div className="flex items-stretch gap-2 mb-3">
         <div className="flex flex-col items-center gap-0.5 pt-1">
-          <span className="w-2 h-2 rounded-full border-2 border-zinc-400 dark:border-zinc-500 flex-shrink-0" />
-          <span className="w-px flex-1 bg-zinc-200 dark:bg-zinc-700" />
-          <span className="w-2 h-2 rounded-full bg-zinc-700 dark:bg-zinc-300 flex-shrink-0" />
+          <span className="w-2 h-2 rounded-full border-2 border-zinc-400 flex-shrink-0" />
+          <span className="w-px flex-1 bg-zinc-200" />
+          <span className="w-2 h-2 rounded-full bg-zinc-700 flex-shrink-0" />
         </div>
         <div className="flex flex-col gap-1.5 flex-1 min-w-0">
-          <p className="text-xs text-zinc-500 dark:text-zinc-400 leading-tight">
+          <p className="text-xs text-zinc-500 leading-tight">
             {truncate(order.pickup.address, 60)}
           </p>
-          <p className="text-xs font-medium text-zinc-700 dark:text-zinc-300 leading-tight">
+          <p className="text-xs font-medium text-zinc-700 leading-tight">
             {truncate(order.dropoff.address, 60)}
           </p>
         </div>

@@ -30,8 +30,8 @@ export function ListingModeTabs() {
             href={mode.href}
             className={`rounded-lg border border-solid px-4 py-3 transition-colors ${
               isActive
-                ? "border-zinc-900 bg-zinc-900 text-white dark:border-zinc-50 dark:bg-zinc-50 dark:text-zinc-900"
-                : "border-black/[.08] bg-white text-zinc-700 hover:border-black/[.16] dark:border-white/[.1] dark:bg-zinc-900 dark:text-zinc-300 dark:hover:border-white/[.18]"
+                ? "border-zinc-300 bg-zinc-300 text-zinc-700"
+                : "border-black/[.08] bg-white text-zinc-700 hover:border-black/[.16]"
             }`}
           >
             <span className="block text-sm font-semibold">{mode.label}</span>
