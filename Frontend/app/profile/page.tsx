@@ -12,6 +12,14 @@ const PROFILE = {
   verified: true,
 };
 
+interface Vehicle {
+  id: string;
+  type: string;
+  plateNumber: string;
+}
+
+const VEHICLE_TYPES = ["Car", "Van", "Lorry", "Motorcycle", "Pickup Truck"];
+
 function CopyableRow({
   label,
   value,
@@ -47,9 +55,102 @@ function CopyableRow({
   );
 }
 
-export default function ProfilePage() {
+function AddVehicleModal({
+  onClose,
+  onSubmit,
+}: {
+  onClose: () => void;
+  onSubmit: (vehicle: { type: string; plateNumber: string }) => void;
+}) {
+  const [type, setType] = useState(VEHICLE_TYPES[0]);
+  const [plateNumber, setPlateNumber] = useState("");
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!plateNumber.trim()) return;
+    onSubmit({ type, plateNumber: plateNumber.trim().toUpperCase() });
+    onClose();
+  };
+
   return (
-    <main className="mx-12 my-8">
+    <div
+      className="fixed inset-0 bg-black/30 flex items-center justify-center z-50"
+      onClick={onClose}
+    >
+      <div
+        className="bg-white rounded-2xl p-8 w-full max-w-md shadow-lg"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <h3 className="text-lg font-semibold mb-1">Add Vehicle</h3>
+        <p className="text-sm text-gray-400 mb-6">
+          Register a vehicle under your company
+        </p>
+
+        <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+          <div className="flex flex-col gap-1.5">
+            <label className="text-xs text-gray-500 uppercase tracking-wide">
+              Vehicle Type
+            </label>
+            <select
+              value={type}
+              onChange={(e) => setType(e.target.value)}
+              className="rounded-xl border border-gray-200 px-4 py-2.5 text-sm focus:outline-none focus:border-orange-400 transition-colors bg-white"
+            >
+              {VEHICLE_TYPES.map((t) => (
+                <option key={t} value={t}>
+                  {t}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div className="flex flex-col gap-1.5">
+            <label className="text-xs text-gray-500 uppercase tracking-wide">
+              Car Plate Number
+            </label>
+            <input
+              type="text"
+              value={plateNumber}
+              onChange={(e) => setPlateNumber(e.target.value)}
+              placeholder="e.g. WXY 1234"
+              className="rounded-xl border border-gray-200 px-4 py-2.5 text-sm focus:outline-none focus:border-orange-400 transition-colors uppercase placeholder:normal-case"
+            />
+          </div>
+
+          <div className="flex gap-3 mt-2">
+            <button
+              type="button"
+              onClick={onClose}
+              className="flex-1 rounded-xl border border-gray-200 text-sm font-medium py-2.5 text-gray-600 hover:bg-gray-50 transition-colors"
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              disabled={!plateNumber.trim()}
+              className="flex-1 rounded-xl bg-orange-500 text-white text-sm font-medium py-2.5 hover:bg-orange-600 transition-colors disabled:bg-gray-300 disabled:cursor-not-allowed"
+            >
+              Add Vehicle
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+}
+
+export default function ProfilePage() {
+  const [showAddVehicle, setShowAddVehicle] = useState(false);
+  const [vehicles, setVehicles] = useState<Vehicle[]>([
+    { id: "1", type: "Van", plateNumber: "WXY 1234" },
+  ]);
+
+  const handleAddVehicle = (vehicle: { type: string; plateNumber: string }) => {
+    setVehicles((prev) => [...prev, { id: crypto.randomUUID(), ...vehicle }]);
+  };
+
+  return (
+    <main className="mx-12 my-8 relative min-h-screen">
       <div className="grid grid-cols-10 gap-6">
         {/* Identity card */}
         <div className="col-span-4 flex flex-col gap-4">
@@ -64,7 +165,6 @@ export default function ProfilePage() {
               </p>
               <p className="text-xs text-gray-400 mt-0.5">{PROFILE.id}</p>
             </div>
-
             {PROFILE.verified ? (
               <span className="text-xs font-medium text-green-600 bg-green-50 px-3 py-1 rounded-full">
                 Verified
@@ -73,6 +173,30 @@ export default function ProfilePage() {
               <span className="text-xs font-medium text-yellow-600 bg-yellow-50 px-3 py-1 rounded-full">
                 Pending Verification
               </span>
+            )}
+          </div>
+
+          {/* Vehicles */}
+          <h2 className="text-xl font-semibold">Vehicles</h2>
+          <div className="rounded-xl border border-gray-200 bg-white px-6 py-2">
+            {vehicles.length > 0 ? (
+              <div className="divide-y divide-gray-100">
+                {vehicles.map((v) => (
+                  <div
+                    key={v.id}
+                    className="flex justify-between items-center py-2.5 text-sm"
+                  >
+                    <span className="text-gray-500">{v.type}</span>
+                    <span className="font-medium text-gray-900 tracking-wide">
+                      {v.plateNumber}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <p className="text-sm text-gray-400 py-3">
+                No vehicles added yet.
+              </p>
             )}
           </div>
         </div>
@@ -87,7 +211,10 @@ export default function ProfilePage() {
               Company Information
             </p>
             <div className="divide-y divide-gray-100">
-              <CopyableRow label="Full Company Name" value={PROFILE.companyName} />
+              <CopyableRow
+                label="Full Company Name"
+                value={PROFILE.companyName}
+              />
               <CopyableRow
                 label="Company Serial Number"
                 value={PROFILE.serialNumber}
@@ -104,12 +231,31 @@ export default function ProfilePage() {
             </p>
             <div className="divide-y divide-gray-100">
               <CopyableRow label="ID" value={PROFILE.id} copyable />
-              <CopyableRow label="Wallet Balance" value={PROFILE.walletBalance} />
+              <CopyableRow
+                label="Wallet Balance"
+                value={PROFILE.walletBalance}
+              />
               <CopyableRow label="Created At" value={PROFILE.createdAt} />
             </div>
           </div>
         </div>
       </div>
+
+      {/* Add Vehicle button */}
+      <button
+        onClick={() => setShowAddVehicle(true)}
+        className="fixed bottom-8 right-8 flex items-center gap-2 rounded-full bg-orange-500 text-white text-sm font-semibold px-5 h-11 shadow-lg hover:bg-orange-600 transition-colors"
+      >
+        <span className="text-lg leading-none">+</span>
+        Add Vehicle
+      </button>
+
+      {showAddVehicle && (
+        <AddVehicleModal
+          onClose={() => setShowAddVehicle(false)}
+          onSubmit={handleAddVehicle}
+        />
+      )}
     </main>
   );
 }

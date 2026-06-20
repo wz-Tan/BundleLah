@@ -1,12 +1,12 @@
 "use client";
 
-import { useState } from "react";
-import type { GetCargoRequestItem } from "@/type";
 import {
   ListingModeTabs,
   OrderCard,
   OrderDetail,
 } from "@/app/components/listings";
+import type { GetCargoRequestItem } from "@/type";
+import { useState } from "react";
 
 const MOCK_CARGO_REQUESTS: GetCargoRequestItem[] = [
   {
@@ -149,9 +149,6 @@ export default function CargoRequestsPage() {
       <main className="flex flex-1 w-full max-w-3xl flex-col py-12 px-6 sm:px-16">
         <div className="flex items-end justify-between mb-8">
           <div>
-            <p className="text-[10px] uppercase tracking-[0.2em] text-amber-500 font-bold mb-1">
-              CargoPool
-            </p>
             <h1 className="text-3xl font-semibold tracking-tight text-zinc-900 dark:text-zinc-50 leading-8">
               Pool Requests
             </h1>
