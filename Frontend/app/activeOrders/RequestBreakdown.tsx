@@ -62,7 +62,7 @@ export default function RequestBreakdown({
                             Pooling Optimization Breakdown
                         </h4>
                         <p className="text-sm font-light mt-0.5">
-                            Accepting this pool scales up your logistics efficiency.
+                            Accepting this bundle scales up your logistics efficiency.
                         </p>
                     </div>
                     <div className="flex gap-8 text-right">
@@ -140,7 +140,7 @@ export default function RequestBreakdown({
                                 disabled={responding}
                                 className="flex-1 text-sm font-medium bg-orange-500 text-white hover:bg-orange-600 py-2.5 rounded-xl transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
                             >
-                                {responding ? "Working..." : "Accept Pool"}
+                                {responding ? "Working..." : "Accept Bundle"}
                             </button>
                         </div>
                     </div>

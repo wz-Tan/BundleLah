@@ -382,7 +382,7 @@ export default function ActiveOrdersPage() {
               Active Orders
             </h1>
             <p className="text-sm text-gray-400 mt-1">
-              Manage your active container requests and trip listings
+              Manage your active bundle requests and trip listings
             </p>
           </div>
         </div>
@@ -531,7 +531,7 @@ export default function ActiveOrdersPage() {
               <div className="flex flex-col gap-6">
                 {tripsCompleted.length === 0 ? (
                   <p className="text-sm text-gray-400 py-8 text-center">
-                    No accepted pooling requests on your trips yet.
+                    No accepted bundle requests on your trips yet.
                   </p>
                 ) : (
                   tripsCompleted.map((trip) => (

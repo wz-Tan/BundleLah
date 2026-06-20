@@ -105,7 +105,7 @@ export function TripDetail({
             setPoolStatus("success");
         } catch (err) {
             setPoolError(
-                err instanceof Error ? err.message : "Failed to send pooling request."
+                err instanceof Error ? err.message : "Failed to send bundle request."
             );
             setPoolStatus("error");
         }
@@ -133,7 +133,7 @@ export function TripDetail({
             ? "Sending request..."
             : poolStatus === "error"
             ? "Retry request"
-            : "Request To Pool Cargo";
+            : "Request To Bundle Cargo";
 
     return (
         <div className="fixed inset-0 z-50 flex items-end justify-center sm:items-center">
@@ -254,7 +254,7 @@ export function TripDetail({
 
                     <div>
                         <p className="mb-2 text-[10px] font-semibold uppercase tracking-widest text-zinc-400">
-                            Assign one of your pooling requests
+                            Assign one of your bundle requests
                         </p>
                         {alreadyRequested ? (
                             <p className="rounded-lg bg-blue-50 px-3 py-2.5 text-sm text-blue-700">
@@ -269,7 +269,7 @@ export function TripDetail({
                         ) : requests.length === 0 ? (
                             <p className="text-sm text-zinc-500">
                                 You have no open cargo requests. Create one first to
-                                request a pool.
+                                request a bundle.
                             </p>
                         ) : (
                             <select
@@ -303,7 +303,7 @@ export function TripDetail({
                         <div className="flex flex-col gap-2">
                             <div className="flex items-center justify-center gap-2 rounded-full bg-blue-50 px-4 py-2 text-sm font-semibold text-blue-700">
                                 <span className="h-1.5 w-1.5 rounded-full bg-blue-500" />
-                                Pool request sent
+                                Bundle request sent
                             </div>
                             <button
                                 onClick={handleCancelRequest}

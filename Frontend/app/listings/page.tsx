@@ -217,7 +217,7 @@ export default function CargoRequestsPage() {
         <div className="flex items-end justify-between mb-8">
           <div>
             <h1 className="text-xl font-semibold text-gray-900">
-              Pool Requests
+              Bundle Requests
             </h1>
             <p className="text-sm text-zinc-500  mt-1">
               For companies with their own logistics team
@@ -261,7 +261,7 @@ export default function CargoRequestsPage() {
           </svg>
           <input
             type="text"
-            placeholder="Search pool requests by company or address..."
+            placeholder="Search bundle requests by company or address..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             className="w-full h-11 rounded-xl border border-gray-200 bg-white pl-11 pr-4 text-sm text-gray-900 placeholder:text-gray-400 outline-none focus:border-orange-400 transition-colors"
@@ -286,7 +286,7 @@ export default function CargoRequestsPage() {
 
         {loading ? (
           <div className="flex flex-col items-center justify-center py-24 text-center">
-            <p className="text-sm text-zinc-400">Loading pool requests...</p>
+            <p className="text-sm text-zinc-400">Loading bundle requests...</p>
           </div>
         ) : error ? (
           <div className="flex flex-col items-center justify-center py-24 text-center">
@@ -314,7 +314,7 @@ export default function CargoRequestsPage() {
               +
             </div>
             <p className="font-semibold text-gray-900">
-              No pool requests found
+              No bundle requests found
             </p>
             <p className="text-xs text-gray-400 mt-0.5 max-w-xs">
               Try adjusting your search or filters.

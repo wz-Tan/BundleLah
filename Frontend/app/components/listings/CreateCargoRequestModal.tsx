@@ -291,10 +291,10 @@ export function CreateCargoRequestModal({
         <div className="flex items-center justify-between px-6 py-4 border-b border-black/[.06]">
           <div>
             <p className="text-[10px] uppercase tracking-widest text-amber-500 font-bold mb-0.5">
-              Cargo Pooling
+              Cargo Bundling
             </p>
             <h2 className="text-lg font-semibold text-zinc-900">
-              Request a pool
+              Request a bundle
             </h2>
           </div>
           <button

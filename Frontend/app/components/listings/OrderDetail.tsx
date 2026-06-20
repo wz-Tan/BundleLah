@@ -92,7 +92,7 @@ export function OrderDetail({
       setPoolStatus("success");
     } catch (err) {
       setPoolError(
-        err instanceof Error ? err.message : "Failed to send pool offer."
+        err instanceof Error ? err.message : "Failed to send bundle offer."
       );
       setPoolStatus("error");
     }
@@ -120,7 +120,7 @@ export function OrderDetail({
       ? "Sending offer..."
       : poolStatus === "error"
       ? "Retry offer"
-      : "Offer To Pool This Cargo";
+      : "Offer To Bundle This Cargo";
 
   return (
     <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center">
@@ -342,7 +342,7 @@ export function OrderDetail({
             <div className="flex flex-col gap-2">
               <div className="flex items-center justify-center gap-2 rounded-full bg-blue-50 px-4 py-2 text-sm font-semibold text-blue-700">
                 <span className="h-1.5 w-1.5 rounded-full bg-blue-500" />
-                Pool offer sent
+                Bundle offer sent
               </div>
               <button
                 onClick={handleCancelRequest}
