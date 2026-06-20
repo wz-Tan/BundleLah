@@ -14,15 +14,11 @@ from app.routers import (
     tracking_records,
 )
 
-# Allow your Next.js development server URL
-origins = [
-    "http://localhost:3000",
-]
 
 app = FastAPI(title="BundleLah API")
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=origins,
+    allow_origins=['*'],
     allow_credentials=True,
     allow_methods=["*"],  # This enables OPTIONS, POST, GET, etc.
     allow_headers=["*"],
