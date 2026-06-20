@@ -99,7 +99,7 @@ export default function CargoRequestsPage() {
             <h1 className="text-xl font-semibold text-gray-900">
               Pool Requests
             </h1>
-            <p className="text-sm text-gray-400 mt-0.5">
+            <p className="text-sm text-zinc-500 dark:text-zinc-400 mt-1">
               For companies with their own logistics team
             </p>
           </div>
@@ -115,7 +115,7 @@ export default function CargoRequestsPage() {
 
         <button
           onClick={() => setShowCreate(true)}
-          className="mb-6 self-start h-10 px-4 rounded-full bg-zinc-900 dark:bg-zinc-50 text-white dark:text-zinc-900 text-sm font-semibold hover:bg-zinc-700 dark:hover:bg-zinc-200 transition-colors"
+          className="mb-6 self-start h-10 px-4 rounded-full bg-orange-500 text-white  text-sm font-semibold hover:bg-orange-400 transition-colors"
         >
           + New request
         </button>
