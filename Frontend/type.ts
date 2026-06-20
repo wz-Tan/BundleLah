@@ -32,7 +32,7 @@ export type PaymentStatus =
 export interface Company {
   id: number;
   name: string;
-  username: string;
+  email: string;
   password: string;
   ssm_number: string;
   address: string;
