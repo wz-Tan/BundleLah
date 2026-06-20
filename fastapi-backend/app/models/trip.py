@@ -2,8 +2,7 @@ from datetime import datetime
 from decimal import Decimal
 from typing import Optional, Any, List, TYPE_CHECKING
 
-from sqlalchemy import String, Numeric, DateTime, ForeignKey, CheckConstraint
-from sqlalchemy.dialects.postgresql import JSONB
+from sqlalchemy import String, Numeric, DateTime, ForeignKey, CheckConstraint, JSON
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from ..db.database import Base
@@ -21,7 +20,7 @@ class Trip(Base):
     driver_id: Mapped[Optional[int]] = mapped_column(
         ForeignKey("drivers.id", ondelete="SET NULL")
     )
-    route_json: Mapped[Optional[Any]] = mapped_column(JSONB)
+    route_json: Mapped[Optional[Any]] = mapped_column(JSON)
     total_distance_km: Mapped[Optional[Decimal]] = mapped_column(Numeric(10, 2))
     load_factor_pct: Mapped[Optional[Decimal]] = mapped_column(Numeric(5, 2))
     route_score: Mapped[Optional[Decimal]] = mapped_column(Numeric(5, 2))
