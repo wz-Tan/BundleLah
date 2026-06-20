@@ -5,7 +5,7 @@ import { useEffect, useState } from "react";
 import type { GetCargoRequestItem, TripListing } from "@/type";
 import { tripListings } from "@/lib/api";
 import { getCurrentCompanyId } from "@/lib/session";
-import { formatTime } from "./listingUtils";
+import { formatDate } from "./listingUtils";
 
 type PoolStatus = "idle" | "loading" | "success" | "error";
 
@@ -26,7 +26,7 @@ export function OrderDetail({
   onCancelRequest?: (orderId: number, matchId: number) => Promise<void>;
 }) {
   const pickupStart = order.pickup.window_start
-    ? formatTime(order.pickup.window_start)
+    ? formatDate(order.pickup.window_start)
     : "Flexible";
 
   // The current company's own open trips, to pick which one carries this cargo.
