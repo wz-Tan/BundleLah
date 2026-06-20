@@ -165,12 +165,12 @@ export default function AvailableTripsPage() {
             <h1 className="text-xl font-semibold text-gray-900">
               Available Trips
             </h1>
-            <p className="text-sm text-zinc-500 dark:text-zinc-400 mt-1">
+            <p className="text-sm text-zinc-500 mt-1">
               For companies without their own logistics team
             </p>
           </div>
           <div className="hidden text-right sm:block">
-            <p className="text-2xl font-bold text-zinc-900 tabular-nums dark:text-zinc-50">
+            <p className="text-2xl font-bold text-zinc-900 tabular-nums">
               {filtered.length}
             </p>
             <p className="text-xs font-medium uppercase tracking-widest text-zinc-400">
@@ -204,7 +204,7 @@ export default function AvailableTripsPage() {
             placeholder="Search trips by company or region..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="w-full h-11 rounded-full border border-solid border-black/[.08] dark:border-white/[.1] bg-white dark:bg-zinc-900 pl-10 pr-4 text-sm text-zinc-800 dark:text-zinc-200 placeholder:text-zinc-400 outline-none focus:border-amber-400 transition-colors"
+            className="w-full h-11 rounded-full border border-solid border-black/[.08]  bg-white pl-10 pr-4 text-sm text-zinc-800 placeholder:text-zinc-400 outline-none focus:border-amber-400 transition-colors"
           />
         </div>
 
@@ -227,10 +227,10 @@ export default function AvailableTripsPage() {
           </div>
         ) : (
           <div className="flex flex-col items-center justify-center py-24 text-center">
-            <div className="w-14 h-14 rounded-2xl bg-zinc-100 dark:bg-zinc-800 flex items-center justify-center mb-4 text-2xl">
+            <div className="w-14 h-14 rounded-2xl bg-zinc-100 flex items-center justify-center mb-4 text-2xl">
               +
             </div>
-            <p className="text-base font-semibold text-zinc-700 dark:text-zinc-300">
+            <p className="text-base font-semibold text-zinc-700">
               No available trips found
             </p>
             <p className="text-sm text-zinc-400 mt-1 max-w-xs">

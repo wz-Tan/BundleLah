@@ -99,7 +99,7 @@ export default function CargoRequestsPage() {
             <h1 className="text-xl font-semibold text-gray-900">
               Pool Requests
             </h1>
-            <p className="text-sm text-zinc-500 dark:text-zinc-400 mt-1">
+            <p className="text-sm text-zinc-500  mt-1">
               For companies with their own logistics team
             </p>
           </div>
