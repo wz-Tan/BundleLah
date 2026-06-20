@@ -123,9 +123,6 @@ export default function AvailableTripsPage() {
       <main className="flex w-full max-w-3xl flex-1 flex-col px-6 py-12 sm:px-16">
         <div className="mb-8 flex items-end justify-between gap-4">
           <div>
-            <p className="mb-1 text-[10px] font-bold uppercase tracking-[0.2em] text-emerald-600">
-              CargoPool
-            </p>
             <h1 className="text-3xl font-semibold leading-8 tracking-tight text-zinc-900 dark:text-zinc-50">
               Available Trips
             </h1>

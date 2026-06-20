@@ -1,5 +1,5 @@
 "use client";
-
+import Image from "next/image";
 import Link from "next/link";
 import { useState } from "react";
 
@@ -85,15 +85,15 @@ export default function LoginPage() {
       </div>
 
       {/* Right: company branding */}
-      <div className="bg-orange-500 flex items-center justify-center">
+      <div className="bg-orange-100 flex items-center justify-center">
         <div className="text-center text-white">
-          <div className="w-20 h-20 mx-auto rounded-full bg-white/20 flex items-center justify-center text-3xl font-semibold mb-4">
-            T
-          </div>
-          <h2 className="text-3xl font-semibold">BundleLah</h2>
-          <p className="text-orange-50 text-sm mt-2">
-            Smarter cargo, shared routes.
-          </p>
+          <Image
+            src="/bundlelah_logo.png"
+            alt="BundleLah logo"
+            width={800}
+            height={800}
+            className="object-contain"
+          />
         </div>
       </div>
     </main>
