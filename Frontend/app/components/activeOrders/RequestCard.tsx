@@ -13,9 +13,11 @@ export function RequestCard({ request, onDelete }: RequestCardProps) {
       <div className="flex justify-between items-start mb-4">
         <div>
           <span className="text-xs font-semibold text-gray-400 uppercase tracking-wider">
-            Order ID
+            {request.offeredBy ? "Offer From" : "Order ID"}
           </span>
-          <h3 className="text-sm font-bold text-gray-900">{request.id}</h3>
+          <h3 className="text-sm font-bold text-gray-900">
+            {request.offeredBy ?? request.id}
+          </h3>
         </div>
         <span
           className={`text-xs px-2.5 py-1 rounded-full font-medium uppercase tracking-wide ${

@@ -6,6 +6,7 @@ import {
   cargoRequests,
   tripListings,
   cargoMatches,
+  companies,
   estimateBudgetRm,
   ApiError,
 } from "@/lib/api";
@@ -112,8 +113,62 @@ export default function ActiveOrdersPage() {
           };
         };
 
-        // Requests tab: every pooling request/offer involving this company.
-        setRequests(matches.map(toOrderRequest));
+        // The Requests tab shows offers from logistics providers who want to
+        // carry my cargo (matches they initiated against my cargo requests).
+        const myCargoIds = new Set(cargo.map((cr) => cr.id));
+        const cargoOffers = matches.filter(
+          (m) =>
+            m.cargo_request_id != null &&
+            myCargoIds.has(m.cargo_request_id) &&
+            m.initiated_by === "logistics_provider"
+        );
+
+        // Resolve who made each offer: the company owning the offering trip.
+        const offerTripIds = [
+          ...new Set(
+            cargoOffers
+              .map((m) => m.trip_listing_id)
+              .filter((tid): tid is number => tid != null)
+          ),
+        ];
+        const [offerTrips, comps] = await Promise.all([
+          Promise.all(offerTripIds.map((tid) => tripListings.get(tid))),
+          companies.list({ limit: 200 }),
+        ]);
+        if (cancelled) return;
+        const tripCompanyId = new Map(
+          offerTrips.map((t) => [t.id, t.company_id])
+        );
+        const companyName = new Map(comps.map((c) => [c.id, c.name]));
+
+        setRequests(
+          cargoOffers.map((m) => {
+            const cr =
+              m.cargo_request_id != null
+                ? cargoById.get(m.cargo_request_id)
+                : undefined;
+            const companyId =
+              m.trip_listing_id != null
+                ? tripCompanyId.get(m.trip_listing_id)
+                : undefined;
+            const offeredBy =
+              companyId != null
+                ? companyName.get(companyId) ?? `Company #${companyId}`
+                : "Unknown company";
+            const price =
+              m.agreed_price_rm != null
+                ? Number(m.agreed_price_rm)
+                : estimateBudgetRm(cr?.weight_kg);
+            return {
+              id: `MATCH-${m.id}`,
+              offeredBy,
+              pickup: cr?.pickup_address ?? "Unknown pickup",
+              destination: cr?.dropoff_address ?? "Unknown destination",
+              price,
+              status: m.status ?? "pending",
+            };
+          })
+        );
 
         // Trip Listings tab: each trip with the pooling requests made on it.
         setTrips(
