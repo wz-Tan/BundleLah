@@ -168,7 +168,7 @@ export default function RegisterPage() {
       <div className="bg-orange-100 flex items-center justify-center">
         <div className="text-center text-white">
           <Image
-            src="/bundlelah_logo.png"
+            src="/bundlelah_logo_2.svg"
             alt="BundleLah logo"
             width={800}
             height={800}

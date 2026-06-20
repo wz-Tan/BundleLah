@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 
@@ -20,9 +21,13 @@ export default function Header() {
 
   return (
     <header className="flex items-center justify-between px-6 py-3 border-b border-gray-200 bg-white">
-      <span className="text-lg font-semibold tracking-tight text-orange-500">
-        BundleLah
-      </span>
+      <Image
+        src="/bundlelah_icon_3.svg"
+        alt="BundleLah logo"
+        width={50}
+        height={100}
+        className="object-contain"
+      />
 
       <nav className="flex items-center gap-1">
         {NAV_LINKS.map(({ href, label }) => {
