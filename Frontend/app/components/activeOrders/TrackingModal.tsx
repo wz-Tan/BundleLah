@@ -603,7 +603,7 @@ export function TrackingModal({
                       View Detailed Records
                     </summary>
                     <div className="space-y-2 max-h-60 overflow-y-auto mt-2">
-                      {trackingRecords.map((record) => (
+                      {trackingRecords.sort((a, b) => b.id - a.id).map((record) => (
                         <div
                           key={record.id}
                           className="bg-gray-50 border border-gray-200 rounded-lg p-3 text-sm"
