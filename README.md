@@ -223,3 +223,5 @@ The `routers/` and `schemas/` folders are scaffolded for the API surface still t
 ## About
 
 Built for **ImagineHack 2026 @ Taylor's University** by team **Asia Pacific Square Mall**.
+
+AI Declaration : We Used Tools such as Claude, Chatgpt and Kiro for Brainstorming and Coding Assistance
